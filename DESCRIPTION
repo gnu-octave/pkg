@@ -1,9 +1,7 @@
-Name: pkg-example
-Version: 1.0.0
-Date: 2020-09-02
+Name: pkg
+Version: 0.0.1
+Date: 2021-04-05
 Author: Kai T. Ohlhus <k.ohlhus@gmail.com>
 Maintainer: Kai T. Ohlhus <k.ohlhus@gmail.com>
-Title: Minimal example package to demonstrate the Octave package extensions.
-Description: Minimal example package to demonstrate the Octave package
- extensions.  It shows how to organize Octave, C/C++, and FORTRAN code within
- a package and to properly compile it.
+Title: The GNU Octave package management tool.
+Description: The GNU Octave package management tool.
