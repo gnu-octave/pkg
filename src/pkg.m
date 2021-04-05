@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2005-2020 The Octave Project Developers
+## Copyright (C) 2005-2021 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -384,8 +384,10 @@ function [local_packages, global_packages] = pkg (varargin)
   persistent user_prefix = false;
   persistent prefix = false;
   persistent archprefix = -1;
-  persistent local_list = tilde_expand (fullfile ("~", ".octave_packages"));
-  persistent global_list = fullfile (OCTAVE_HOME (), "share", "octave",
+  persistent local_list = fullfile (user_config_dir (), "octave", ...
+                                    __octave_config_info__ ("major_version"), ...
+                                    "octave_packages");
+  persistent global_list = fullfile (OCTAVE_HOME (), "share", "octave", ...
                                      "octave_packages");
 
   ## If user is superuser (posix) or the process has elevated rights (Windows),

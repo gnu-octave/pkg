@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2014-2020 The Octave Project Developers
+## Copyright (C) 2014-2021 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -41,7 +41,8 @@ function [prefix, archprefix] = default_prefix (global_install, desc)
                              "packages");
     endif
   else
-    prefix = tilde_expand (fullfile ("~", "octave"));
+    prefix = fullfile (user_data_dir (), "octave", ...
+                       __octave_config_info__ ("major_version"), "packages");
     archprefix = prefix;
   endif
 
