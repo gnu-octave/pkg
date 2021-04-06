@@ -1,436 +1,309 @@
 # Packages
 
 Since Octave is Free Software users are encouraged to share their
-programs with others.  To aid this sharing Octave supports the
-installation of extra packages.  The 'Octave Forge' project is a
-community-maintained set of packages that can be downloaded and
-installed in Octave.  At the time of writing the 'Octave Forge' project
-can be found online at <https://octave.sourceforge.io>, but
-since the Internet is an ever-changing place this may not be true at
-the time of reading.  Therefore it is recommended to see the Octave
-website for an updated reference.
+programs with others.
+To aid this sharing Octave supports the installation of extra packages.
+At the time of writing a collection of packages can be found online at
+- the 'Octave Packages' page <https://gnu-octave.github.io/packages/>
+- the 'Octave Forge' project <https://octave.sourceforge.io>
+Since the Internet is an ever-changing place
+this may not be true at the time of reading.
+Therefore it is recommended to see the Octave website <https://octave.org>
+for an updated reference.
 
 
 ## Installing and Removing Packages
 
-Assuming a package is available in the file @file{image-1.0.0.tar.gz}
+Assuming a package is available in the file `image-1.0.0.tar.gz`
 it can be installed from the Octave prompt with the command
 ```
 pkg install image-1.0.0.tar.gz
 ```
-If the package is installed successfully nothing will be printed on
-the prompt, but if an error occurred during installation it will be
-reported.  It is possible to install several packages at once by
-writing several package files after the @code{pkg install} command.
-If a different version of the package is already installed it will
-be removed prior to installing the new package.  This makes it easy to
-upgrade and downgrade the version of a package, but makes it
-impossible to have several versions of the same package installed at
-once.
+If the package is installed successfully nothing will be printed on the prompt,
+but if an error occurred during installation it will be reported.
+It is possible to install several packages at once
+by writing several package files after the `pkg install` command.
+If a different version of the package is already installed
+it will be removed prior to installing the new package.
+This makes it easy to upgrade and downgrade the version of a package,
+but makes it impossible to have several versions of the same package
+installed at once.
 
 To see which packages are installed type
+```
+>> pkg list
 
-@example
-@group
-pkg list
-@print{} Package Name  | Version | Installation directory
-@print{} --------------+---------+-----------------------
-@print{}        image *|   1.0.0 | /home/jwe/octave/image-1.0.0
-@end group
-@end example
+Package Name  | Version | Installation directory
+--------------+---------+-----------------------
+       image *|   1.0.0 | /home/jwe/octave/image-1.0.0
+```
+In this case only version 1.0.0 of the "image"-package is installed.
+The `'*'` character next to the package name shows
+that the image package is loaded and ready for use.
 
-
-In this case only version 1.0.0 of the @code{image} package is
-installed.  The @qcode{'*'} character next to the package name shows that the
-image package is loaded and ready for use.
-
-It is possible to remove a package from the system using the
-@code{pkg uninstall} command like this
-
-@example
+It is possible to remove a package from the system using the command
+```
 pkg uninstall image
-@end example
+```
+If the package is removed successfully nothing will be printed in the prompt,
+but if an error occurred it will be reported.
+It should be noted that the package installation is not needed for removal.
+Only the package name as reported by `pkg list` should be used
+when removing a package.
+It is possible to remove several packages at once
+by writing several package names after the `pkg uninstall` command.
 
-
-If the package is removed successfully nothing will be printed in the
-prompt, but if an error occurred it will be reported.  It should be
-noted that the package file used for installation is not needed for
-removal, and that only the package name as reported by @code{pkg list}
-should be used when removing a package.  It is possible to remove
-several packages at once by writing several package names after the
-@code{pkg uninstall} command.
-
-To minimize the amount of code duplication between packages it is
-possible that one package depends on another one.  If a package
-depends on another, it will check if that package is installed
-during installation.  If it is not, an error will be reported and
-the package will not be installed.  This behavior can be disabled
-by passing the @option{-nodeps} flag to the @code{pkg install}
-command
-
-@example
+To minimize the amount of code duplication between packages
+it is possible that one package depends on another one.
+If a package depends on another,
+it will check if that package is installed during installation.
+If it is not,
+an error will be reported and the package will not be installed.
+This behavior can be disabled by passing the `-nodeps` flag
+to the `pkg install` command
+```
 pkg install -nodeps my_package_with_dependencies.tar.gz
-@end example
-
-
+```
 Since the installed package expects its dependencies to be installed
-it may not function correctly.  Because of this it is not recommended
-to disable dependency checking.
+it may not function correctly.
+Because of this it is not recommended to disable dependency checking.
 
 @DOCSTRING(pkg)
 
 
 ## Using Packages
 
-By default installed packages are not available from the Octave prompt,
-but it is possible to control this using the @code{pkg load} and
-@code{pkg unload} commands.  The functions from a package can be
-added to the Octave path by typing
-
-@example
-pkg load package_name
-@end example
-
-
-where @code{package_name} is the name of the package to be added
-to the path.
-
+By default the functions provided by an installed package,
+for example the "image"-package",
+are not available from the Octave prompt,
+i.e. the package functions are not added to the Octave load path.
+Packages need to be loaded first using the commands
+```
+pkg load image
+```
 In much the same way a package can be removed from the Octave path by
-typing
-
-@example
-pkg unload package_name
-@end example
+```
+pkg unload image
+```
 
 
 ## Administrating Packages
 
 It is possible to make both per-user (local) and system-wide (global)
-installations of a package.  If the user performing the installation is
-@code{root} (or Administrator with elevated rights on Windows), the
-packages by default install in a system-wide directory that defaults to
-@file{@var{OCTAVE_HOME}/share/octave/packages/}.  If the user is not
-@code{root} (or without elevated rights), packages are installed
-locally.  The default installation directory for local packages is
-@file{@var{user_data_dir}/octave/@var{OCTAVE_MAJOR_VERSION}/packages}.
-Packages will be installed in a subdirectory of the installation
-directory that will be named after the package.  It is possible to
-change the installation directory by using the @code{pkg prefix}
-command:
+installations of packages.
+Global package installations require administrator privileges (`root` user).
 
-@example
-pkg prefix new_installation_directory
-@end example
+The local and global package installations consists of an index file,
+get- and settable by `pkg local_list` and `pkg global_list`,
+respectively,
+and a designated package installation directory,
+get- and settable by `pkg prefix -local` and `pkg prefix -global`,
+respectively.
 
+An example output for the global installations
+```
+>> pkg global_list
+                                 /usr/share/octave/octave_packages
 
-The current installation directory can be retrieved by typing
+>> pkg prefix -global
+Installation prefix:             /usr/share/octave/packages
+Architecture dependent prefix:   /usr/lib/octave/packages
+```
+and for local installations
+```
+>> pkg local_list
+                                 /home/username/.octave_packages
 
-@example
-current_installation_directory = pkg ("prefix")
-@end example
+>> pkg prefix -local
+Installation prefix:             /home/username/octave
+Architecture dependent prefix:   /home/username/octave
+```
 
-The package manager stores some information about the installed
-packages in configuration files.  For per-user (local) packages, this
-information is stored in the file
-@file{@var{user_config_dir}/octave/@var{OCTAVE_MAJOR_VERSION}/octave_packages}
-by default.  For system-wide (global) installations, it is stored in
-@file{@var{OCTAVE_HOME}/share/octave/octave_packages}.  The path to the
-per-user file can be changed with the @code{pkg local_list} command:
-
-@example
-pkg local_list /path/to/new_file
-@end example
-
-
-For system-wide installations, this can be changed in the same way
-using the @code{pkg global_list} command.  If these commands are called
-without a new path, the current path will be returned.  To retain these
-settings between sessions, they can be set in one of the startup files,
-see @ref{Startup Files}.
+The local installation prefix can be changed by calling
+```
+pkg prefix /new/prefix/dir
+```
+with a further input argument `new_dir` but no output arguments.
+With two further input arguments
+```
+pkg prefix /new/prefix/dir /new/arch/prefix/dir
+```
+the architecture dependent prefix directory can be altered separately.
+Note that prefix changes are only valid within a single Octave session.
+Add a call to `pkg prefix` in an Octave startup file
+to make those changes persistent.
 
 
 ## Creating Packages
 
-Internally a package is simply a gzipped tar file that contains a
-top level directory of any given name.  This directory will in the
-following be referred to as @code{package} and may contain the
-following files:
+Internally a package is simply a compressed file
+that contains a top level directory of any given name.
+This directory will in the following be referred to as "package"
+and may contain the following files:
 
-@table @code
-@item package/CITATION
-This is am optional file describing instructions on how to cite
-the package for publication.  It will be displayed verbatim by the
-function @code{citation}.
+- `package/COPYING` (mandatory)
+  License of the package.
+  If the package contains (compiled) functions,
+  dynamically linked to Octave libraries,
+  the license must be compatible with the GNU General Public License.
 
-@item package/COPYING
-This is a required file containing the license of the package.  No
-restrictions is made on the license in general.  If however the
-package contains dynamically linked functions the license must be
-compatible with the GNU General Public License.
+- `package/DESCRIPTION` (mandatory)
+  Information about the package.
+  See [DESCRIPTION File](#description_file), for details on this file.
 
-@item package/DESCRIPTION
-This is a required file containing information about the package.
-@xref{The DESCRIPTION File}, for details on this file.
+- `package/INDEX` (semi-mandatory)
+  Listing the functions provided by the package.
+  If this file is not given, it will be created automatically
+  from the functions in the package and the `Categories` keyword
+  in the `package/DESCRIPTION` file.
+  See [INDEX File](#index_file), for details on this file.
 
-@item package/ChangeLog
-This is an optional file describing all the changes made to the
-package source files.
+- `package/CITATION` (optional)
+  Instructions on how to cite the package for publication.
+  Content is displayed verbatim with
+  ```
+  citation package_name
+  ```
 
-@item package/INDEX
-This is an optional file describing the functions provided by the
-package.  If this file is not given then one with be created
-automatically from the functions in the package and the
-@code{Categories} keyword in the @file{DESCRIPTION} file.
-@xref{The INDEX File}, for details on this file.
+- `package/ChangeLog` (optional)
+  Development info describing changes made to the package source files.
 
-@item package/NEWS
-This is an optional file describing all user-visible changes worth
-mentioning.  As this file increases on size, old entries can be moved
-into @file{package/ONEWS}.
+- `package/NEWS` (optional)
+  Describing user-visible changes worth mentioning.
 
-@item package/ONEWS
-This is an optional file describing old entries from the @file{NEWS} file.
+- `package/PKG_ADD` (optional)
+  `package/PKG_DEL` (optional)
+  File that includes commands that are run when the package is added
+  to the Octave load path.
+  Note that regular Octave `PKG_ADD` / `PKG_DEL` directives
+  in the package source code will additionally be added to this file
+  by the Octave package manager.
+  Further note that symbolic links are to be avoided in packages.
+  Symbolic links do not exist on some file systems, and so a typical use for this file is the replacement of the symbolic link
 
-@cindex PKG_ADD
-@anchor{XREFPKG_ADD}
-@item package/PKG_ADD
-An optional file that includes commands that are run when the package
-is added to the users path.  Note that @w{@code{PKG_ADD}} directives in the
-source code of the package will also be added to this file by the
-Octave package manager.  Note that symbolic links are to be avoided in
-packages, as symbolic links do not exist on some file systems, and so
-a typical use for this file is the replacement of the symbolic link
+- `package/pre_install.m` (optional)
+  Function that is run prior to the installation of a package.
 
-@example
-ln -s foo.oct bar.oct
-@end example
+- `package/post_install.m` (optional)
+  Function that is run after the installation of a package.
 
+- `package/on_uninstall.m` (optional)
+  Function that is run prior to the removal of a package.
 
-with an autoload directive like
-
-@example
-autoload ('bar', which ('foo'));
-@end example
+The three `***install.m` functions are each called with a single argument,
+a struct with fields names after the data
+in the [DESCRIPTION File](#description_file),
+and the paths where the package functions will be installed.
 
 
-@xref{PKG_ADD and PKG_DEL Directives}, for details on @w{@code{PKG_ADD}}
-directives.
+Besides the above mentioned files,
+a package can also contain one or more of the following directories:
 
-@cindex PKG_DEL
-@anchor{XREFPKG_DEL}
-@item package/PKG_DEL
-An optional file that includes commands that are run when the package
-is removed from the users path.  Note that @w{@code{PKG_DEL}} directives in
-the source code of the package will also be added to this file by the
-Octave package manager.
-@xref{PKG_ADD and PKG_DEL Directives}, for details on @w{@code{PKG_DEL}}
-directives.
+- `package/src` (optional)
+  Directory the package source code files.
 
-@item package/pre_install.m
-This is an optional function that is run prior to the installation of a
-package.  This function is called with a single argument, a struct with
-fields names after the data in the @file{DESCRIPTION}, and the paths where
-the package functions will be installed.
+  The Octave package manager will execute in this directory
+  - `./configure` if this script exists
+  - `make` if a `Makefile` exists (`make install` will not be called)
+  to eventually compile source code files.
 
-@item package/post_install.m
-This is an optional function that is run after the installation of a
-package.  This function is called with a single argument, a struct with
-fields names after the data in the @file{DESCRIPTION}, and the paths where
-the package functions were installed.
+  In these scripts it is safer to use the provided environment variables
+  `MKOCTFILE`, `OCTAVE_CONFIG`, and `OCTAVE`,
+  rather than calling the programs `mkoctfile`, `octave-config`, and `octave`,
+  directly.
 
-@item package/on_uninstall.m
-This is an optional function that is run prior to the removal of a
-package.  This function is called with a single argument, a struct with
-fields names after the data in the @file{DESCRIPTION}, the paths where
-the package functions are installed, and whether the package is currently
-loaded.
-@end table
+  If the file `package/src/FILES` exists,
+  all files listed in that file are copied to the final `inst` directory.
+  By default all `package/src/*.m`, `package/src/*.mex`,
+  and `package/src/*.oct` are copied to the final package installation
+  `package/inst` directory.
 
-Besides the above mentioned files, a package can also contain one or
-more of the following directories:
+- `package/inst` (optional)
+  Directory containing any files that can be directly installed (copied)
+  to the final package installation directory.
+  Typically this will include Octave m-files.
 
-@table @code
-@item package/inst
-An optional directory containing any files that are directly installed
-by the package.  Typically this will include any @code{m}-files.
+- `package/doc` (optional)
+  Directory containing documentation for the package,
+  that are directly installed (copied) to the final package installation
+  directory.
 
-@item package/src
-An optional directory containing code that must be built prior to the
-packages installation.  The Octave package manager will execute
-@file{./configure} in this directory if this script exists, and will
-then call @code{make} if a file @file{Makefile} exists in this
-directory.  @code{make install} will however not be called.  The
-environment variables @env{MKOCTFILE}, @w{@env{OCTAVE_CONFIG}}, and
-@env{OCTAVE} will be set to the full paths of the programs
-@code{mkoctfile}, @code{octave-config}, and @code{octave}, respectively,
-of the correct version when @code{configure} and @code{make} are
-called.  If a file called @code{FILES} exists all files listed there
-will be copied to the @code{inst} directory, so they also will be
-installed.  If the @code{FILES} file doesn't exist, @file{src/*.m} and
-@file{src/*.oct} will be copied to the @code{inst} directory.
-
-@item package/doc
-An optional directory containing documentation for the package.  The
-files in this directory will be directly installed in a sub-directory
-of the installed package for future reference.
-
-@item package/bin
-An optional directory containing files that will be added to the
-Octave @w{@env{EXEC_PATH}} when the package is loaded.  This might contain
-external scripts, etc., called by functions within the package.
-@end table
-
-@menu
-* The DESCRIPTION File::
-* The INDEX File::
-* PKG_ADD and PKG_DEL Directives::
-* Missing Components::
-@end menu
-
-@node The DESCRIPTION File
-@subsection The DESCRIPTION File
-
-The @file{DESCRIPTION} file contains various information about the
-package, such as its name, author, and version.  This file has a very
-simple format
-
-@itemize
-@item
-Lines starting with @samp{#} are comments.
-
-@item
-Lines starting with a blank character are continuations from the
-previous line.
-
-@item
-Everything else is of the form @code{NameOfOption: ValueOfOption}.
-@end itemize
+- `package/bin` (optional)
+  Directory containing files that will be added to the Octave `EXEC_PATH`
+  when the package is loaded.
+  This might contain external scripts, etc.,
+  called by functions within the package.
 
 
-The following is a simple example of a @file{DESCRIPTION} file
+### The DESCRIPTION File
 
-@example
-@group
-Name: The name of my package
-Version: 1.0.0
-Date: 2007-18-04
-Author: The name (and possibly email) of the package author.
-Maintainer: The name (and possibly email) of the current
- package maintainer.
-Title: The title of the package
-Description: A short description of the package.  If this
- description gets too long for one line it can continue
- on the next by adding a space to the beginning of the
- following lines.
-License: GPLv3+
-@end group
-@end example
+The `package/DESCRIPTION` file contains the package information
+in a YAML-like format:
+- Lines starting with `#` are comments.
+- Lines starting with a blank character continue the previous line.
+- Everything else is of the form `key: value`.
 
-The package manager currently recognizes the following keywords
+The following is a simple example of a `package/DESCRIPTION` file,
+only containing mandatory fields:
+```
+name: package_name
+version: 1.0.0
+date: 2021-02-28
+author: First Author <first.author@email.com>,
+ Second Author <second.author@email.com>
+maintainer: First Maintainer <first.maintainer@email.com>,
+ Second Maintainer <second.maintainer@email.com>
+title: The title of the package
+description: A short description of the package.
+ If this description gets too long for one line it can continue
+ on the next by adding a space to the beginning of the following lines.
+```
 
-@table @code
-@item Name
-Name of the package.
+The following keywords are mandatory:
+- `name`: Name of the package.
+- `version`: Version of the package.
+  A package version is typically digits separated by dots but may also contain
+  `+`, `-`, `~`, and alphanumeric characters (in the "C" locale).
+  For example, `"2.1.0+"` could indicate a development version of a package.
+  Versions are compared using the Octave function `compare_versions()`.
+- `date`: Date of last update.
+- `author`: Original author of the package.
+- `maintainer`: Maintainer of the package.
+- `title`: A one line description of the package.
+- `description`: A one paragraph description of the package.
 
-@item Version
-Version of the package.  A package version is typically digits separated by
-dots but may also contain @samp{+}, @samp{-}, @samp{~}, and alphanumeric
-characters (in the "C" locale).  For example, @qcode{"2.1.0+"} could indicate
-a development version of a package.
-@c regexp in get_description.m:is_valid_pkg_version_string
-Versions are compared using @ref{XREFcompare_versions,,compare_versions}.
+The following keywords are optional:
+- `depends`: A list of other Octave packages that this package depends on.
+  This can include dependencies on particular versions
+  with the following format:
+  ```
+  depends: package (>= 1.0.0)
+  ```
+  Possible operators are `<`, `<=`, `==`, `>=`, or `>`.
+  If the part of the dependency in brackets `()` is missing,
+  any version of the dependency is acceptable.
+  Multiple dependencies can be defined as a comma separated list.
+  This can be used to define a range of versions of a particular dependency:
+  ```
+  depends: package (>= 1.0.0), package (< 1.5.0)
+  ```
+  It is also possible to depend on particular Octave versions
+  ```
+  depends: octave (>= 6.1.0)
+  ```
+- `categories`: Describing the package.
+  If no `package/INDEX` file is given this keyword is mandatory.
 
-@item Date
-Date of last update.
-
-@item Author
-Original author of the package.
-
-@item Maintainer
-Maintainer of the package.
-
-@item Title
-A one line description of the package.
-
-@item Description
-A one paragraph description of the package.
-
-@item Categories
-Optional keyword describing the package (if no @file{INDEX} file is
-given this is mandatory).
-
-@item Problems
-Optional list of known problems.
-
-@item Url
-Optional list of homepages related to the package.
-
-@item Depends
-A list of other Octave packages that this package depends on.  This can include
-dependencies on particular versions, with the following format:
-
-@example
-Depends: package (>= 1.0.0)
-@end example
-
-
-Possible operators are @code{<}, @code{<=}, @code{==}, @code{>=} or @code{>}.
-If the part of the dependency in @code{()} is missing, any version of the
-package is acceptable.  Multiple dependencies can be defined as a comma
-separated list.  This can be used to define a range of versions of a particular
-package:
-
-@example
-Depends: package (>= 1.0.0), package (< 1.5.0)
-@end example
+The following keywords are deprecated,
+it is strongly recommended to **not** to use them:
+- `problems`: Optional list of known problems.
+- `url`: Optional list of homepages related to the package.
+- `license`: Package license, the `package/COPYING` file is mandatory.
+- `SystemRequirements`: External runtime dependencies of the package.
+- `BuildRequires`: External build dependencies of the package.
 
 
-It is also possible to depend on particular versions of Octave core:
-
-@example
-Depends: octave (>= 3.8.0)
-@end example
-
-@item License
-An optional short description of the used license (e.g., GPL version 3
-or newer).  This is optional since the file @file{COPYING} is mandatory.
-
-@item SystemRequirements
-These are the external install dependencies of the package and are not
-checked by the package manager.  This is here as a hint to the
-distribution packager.  They follow the same conventions as the
-@code{Depends} keyword.
-
-@item BuildRequires
-These are the external build dependencies of the package and are not checked by
-the package manager.  This is here as a hint to the distribution packager.
-They follow the same conventions as the @code{Depends} keyword.  Note that in
-general, packaging systems such as @code{rpm} or @code{deb} autoprobe the
-install dependencies from the build dependencies, and therefore a
-@code{BuildRequires} dependency usually removes the need for a
-@code{SystemRequirements} dependency.
-
-@end table
-
-
-The developer is free to add additional arguments to the
-@file{DESCRIPTION} file for their own purposes.  One further detail to
-aid the packager is that the @code{SystemRequirements} and
-@code{BuildRequires} keywords can have a distribution dependent section,
-and the automatic build process will use these.  An example of the
-format of this is
-
-@example
-BuildRequires: libtermcap-devel [Mandriva] libtermcap2-devel
-@end example
-
-
-where the first package name will be used as a default and if the
-RPMs are built on a Mandriva distribution, then the second package
-name will be used instead.
-
-@node The INDEX File
-@subsection The INDEX File
+### The INDEX File
 
 The optional @file{INDEX} file provides a categorical view of the
 functions in the package.  This file has a very simple format
@@ -476,7 +349,7 @@ fn = workaround description
 
 
 This workaround description will not appear when listing functions in the
-package with @code{pkg describe} but they will be published
+package with `pkg describe} but they will be published
 in the HTML documentation online.
 Workaround descriptions can use any HTML markup, but
 keep in mind that it will be enclosed in a bold-italic environment.
@@ -488,7 +361,7 @@ fn = use <code>alternate expression</code>
 
 
 the bold-italic is automatically suppressed.  You will need
-to use @code{<code>} even in references:
+to use `<code>} even in references:
 
 @example
 fn = use <a href="someothersite.html"><code>fn</code></a>
@@ -497,7 +370,7 @@ fn = use <a href="someothersite.html"><code>fn</code></a>
 
 Sometimes functions are only partially compatible, in which
 case you can list the non-compatible cases separately.  To
-refer to another function in the package, use @code{<f>fn</f>}.
+refer to another function in the package, use `<f>fn</f>}.
 For example:
 
 @example
@@ -513,7 +386,7 @@ $id = expansion
 @end example
 
 
-defines the macro id.  You can use @code{$id} anywhere in the
+defines the macro id.  You can use `$id} anywhere in the
 description and it will be expanded.  For example:
 
 @example
@@ -524,39 +397,39 @@ arcov = $TSA <code>armcv</code>
 @end example
 
 
-id is any string of letters, numbers and @code{_}.
+id is any string of letters, numbers and `_}.
 
-@node PKG_ADD and PKG_DEL Directives
-@subsection PKG_ADD and PKG_DEL Directives
 
-If the package contains files called @w{@code{PKG_ADD}} or @w{@code{PKG_DEL}}
+### PKG_ADD and PKG_DEL Directives
+
+If the package contains files called @w{`PKG_ADD}} or @w{`PKG_DEL}}
 the commands in these files will be executed when the package is
 added or removed from the users path.  In some situations such files
 are a bit cumbersome to maintain, so the package manager supports
 automatic creation of such files.  If a source file in the package
-contains a @w{@code{PKG_ADD}} or @w{@code{PKG_DEL}} directive they will be
-added to either the @w{@code{PKG_ADD}} or @w{@code{PKG_DEL}} files.
+contains a @w{`PKG_ADD}} or @w{`PKG_DEL}} directive they will be
+added to either the @w{`PKG_ADD}} or @w{`PKG_DEL}} files.
 
-In @code{m}-files a @w{@code{PKG_ADD}} directive looks like this
+In `m}-files a @w{`PKG_ADD}} directive looks like this
 
 @example
 ## PKG_ADD: some_octave_command
 @end example
 
 
-Such lines should be added before the @code{function} keyword.
-In C++ files a @w{@code{PKG_ADD}} directive looks like this
+Such lines should be added before the `function} keyword.
+In C++ files a @w{`PKG_ADD}} directive looks like this
 
 @example
 // PKG_ADD: some_octave_command
 @end example
 
 
-In both cases @code{some_octave_command} should be replaced by the
-command that should be placed in the @w{@code{PKG_ADD}} file.
-@w{@code{PKG_DEL}} directives work in the same way, except the
-@w{@code{PKG_ADD}} keyword is replaced with @w{@code{PKG_DEL}} and the commands
-get added to the @w{@code{PKG_DEL}} file.
+In both cases `some_octave_command} should be replaced by the
+command that should be placed in the @w{`PKG_ADD}} file.
+@w{`PKG_DEL}} directives work in the same way, except the
+@w{`PKG_ADD}} keyword is replaced with @w{`PKG_DEL}} and the commands
+get added to the @w{`PKG_DEL}} file.
 
 @node Missing Components
 @subsection Missing Components
@@ -565,6 +438,6 @@ If a package relies on a component, such as another Octave package, that may
 not be present it may be useful to install a function which informs users what
 to do when a particular component is missing.  The function must be written by
 the package maintainer and registered with Octave using
-@code{missing_component_hook}.
+`missing_component_hook}.
 
 @DOCSTRING(missing_component_hook)
