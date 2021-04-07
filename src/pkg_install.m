@@ -24,12 +24,12 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} install (@var{files}, @var{handle_deps}, @var{prefix}, @var{archprefix}, @var{verbose}, @var{local_list}, @var{global_list}, @var{global_install})
+## @deftypefn {} {} pkg_install (@var{files}, @var{handle_deps}, @var{prefix}, @var{archprefix}, @var{verbose}, @var{local_list}, @var{global_list}, @var{global_install})
 ## Undocumented internal function.
 ## @end deftypefn
 
-function install (files, handle_deps, prefix, archprefix, verbose,
-                  local_list, global_list, global_install)
+function pkg_install (files, handle_deps, prefix, archprefix, verbose,
+                      local_list, global_list, global_install)
 
   ## Check that the directory in prefix exist.  If it doesn't: create it!
   if (! isfolder (prefix))
@@ -135,6 +135,7 @@ function install (files, handle_deps, prefix, archprefix, verbose,
 
         ## Set default architectire dependent installation directory.
         desc.archprefix = fullfile (archprefix, [desc.name "-" desc.version]);
+        desc.archdir    = fullfile (desc.archprefix, getarch ());
 
         ## Save desc.
         descriptions{end+1} = desc;
@@ -214,11 +215,11 @@ function install (files, handle_deps, prefix, archprefix, verbose,
   try
     for i = packages_to_uninstall
       if (global_install)
-        uninstall ({global_packages{i}.name}, false, verbose, local_list,
-                   global_list, global_install);
+        pkg_uninstall ({global_packages{i}.name}, false, verbose, local_list,
+                       global_list, global_install);
       else
-        uninstall ({local_packages{i}.name}, false, verbose, local_list,
-                   global_list, global_install);
+        pkg_uninstall ({local_packages{i}.name}, false, verbose, local_list,
+                       global_list, global_install);
       endif
     endfor
   catch
@@ -247,7 +248,7 @@ function install (files, handle_deps, prefix, archprefix, verbose,
     endfor
     for i = 1:length (descriptions)
       sts = rmdir (descriptions{i}.dir, "s");
-      sts = rmdir (getarchdir (descriptions{i}), "s");
+      sts = rmdir (descriptions{i}.archdir, "s");
     endfor
     rethrow (lasterror ());
   end_try_catch
@@ -256,10 +257,10 @@ function install (files, handle_deps, prefix, archprefix, verbose,
   ## from the list.
   for i = length (descriptions):-1:1
     if (dirempty (descriptions{i}.dir, {"packinfo", "doc"})
-        && dirempty (getarchdir (descriptions{i})))
+        && dirempty (descriptions{i}.archdir))
       warning ("package %s is empty\n", descriptions{i}.name);
       sts = rmdir (descriptions{i}.dir, "s");
-      sts = rmdir (getarchdir (descriptions{i}), "s");
+      sts = rmdir (descriptions{i}.archdir, "s");
       descriptions(i) = [];
     endif
   endfor
@@ -524,7 +525,7 @@ function copy_files (desc, packdir, global_install)
     endif
   endif
 
-  octfiledir = getarchdir (desc);
+  octfiledir = desc.archdir;
 
   ## Copy the files from "inst" to installdir.
   instdir = fullfile (packdir, "inst");
@@ -680,7 +681,7 @@ function write_index (desc, dir, index_file, global_install)
   endfor
 
   ## Check for architecture dependent files.
-  tmpdir = getarchdir (desc);
+  tmpdir = desc.archdir;
   if (isfolder (tmpdir))
     [files2, err, msg] = readdir (tmpdir);
     if (err)
@@ -732,8 +733,8 @@ function create_pkgadddel (desc, packdir, nm, global_install)
   ## part in the main directory.
   archdir = fullfile (getarchprefix (desc, global_install),
                       [desc.name "-" desc.version], getarch ());
-  if (isfolder (getarchdir (desc)))
-    archpkg = fullfile (getarchdir (desc), nm);
+  if (isfolder (desc.archdir))
+    archpkg = fullfile (desc.archdir, nm);
     archfid = fopen (archpkg, "at");
   else
     archpkg = instpkg;
@@ -802,7 +803,8 @@ endfunction
 function archprefix = getarchprefix (desc, global_install)
 
   if (global_install)
-    [~, archprefix] = default_prefix (global_install, desc);
+    [~, archprefix] = default_prefix (global_install);
+    archprefix = fullfile (archprefix, [desc.name "-" desc.version]);
   else
     archprefix = desc.dir;
   endif
@@ -822,7 +824,7 @@ function finish_installation (desc, packdir, global_install)
     catch
       cd (wd);
       sts = rmdir (desc.dir, "s");
-      sts = rmdir (getarchdir (desc), "s");
+      sts = rmdir (desc.archdir, "s");
       rethrow (lasterror ());
     end_try_catch
   endif

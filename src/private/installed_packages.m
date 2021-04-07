@@ -164,3 +164,18 @@ function [out1, out2] = installed_packages (local_list, global_list, pkgname = {
   endif
 
 endfunction
+
+
+function pkg_list = expand_rel_paths (pkg_list)
+
+  ## Prepend location of OCTAVE_HOME to install directories
+  loc = OCTAVE_HOME ();
+  for i = 1:numel (pkg_list)
+    ## Be sure to only prepend OCTAVE_HOME to pertinent package paths
+    if (strncmpi (pkg_list{i}.dir, "__OH__", 6))
+      pkg_list{i}.dir = [ loc pkg_list{i}.dir(7:end) ];
+      pkg_list{i}.archprefix = [ loc pkg_list{i}.archprefix(7:end) ];
+    endif
+  endfor
+
+endfunction

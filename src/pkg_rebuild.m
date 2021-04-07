@@ -24,11 +24,11 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{descriptions} =} rebuild (@var{prefix}, @var{archprefix}, @var{list}, @var{files}, @var{verbose})
+## @deftypefn {} {@var{descriptions} =} pkg_rebuild (@var{prefix}, @var{archprefix}, @var{list}, @var{files}, @var{verbose})
 ## Undocumented internal function.
 ## @end deftypefn
 
-function descriptions = rebuild (prefix, archprefix, list, files, verbose)
+function descriptions = pkg_rebuild (prefix, archprefix, list, files, verbose)
 
   if (isempty (files))
     if (! exist (prefix, "dir"))

@@ -380,87 +380,9 @@
 
 function [local_packages, global_packages] = pkg (varargin)
 
-  ## Installation prefix
-  persistent user_prefix = false;
-  persistent prefix = false;
-  persistent archprefix = -1;
-  persistent local_list = tilde_expand (fullfile ("~", ".octave_packages"));
-  persistent global_list = fullfile (OCTAVE_HOME (), "share", "octave", ...
-                                     "octave_packages");
-
-  ## If user is superuser (posix) or the process has elevated rights (Windows),
-  ## set global_install to true.
-  if (ispc () && ! isunix ())
-    global_install = __is_elevated_process__ ();
-  else
-    global_install = (geteuid () == 0);
-  endif
-
-  if (isbool (prefix))
-    [prefix, archprefix] = default_prefix (global_install);
-    prefix = tilde_expand (prefix);
-    archprefix = tilde_expand (archprefix);
-  endif
-
-  mlock ();
+  opts = parse_pkg_arguments ("none", varargin);
 
   confirm_recursive_rmdir (false, "local");
-
-  ## valid actions in alphabetical order
-  available_actions = {"build", "describe", "global_list",  "install", ...
-                       "list", "load", "local_list", "prefix", "rebuild", ...
-                       "test", "uninstall", "unload", "update"};
-
-  ## Parse input arguments
-  if (isempty (varargin) || ! iscellstr (varargin))
-    print_usage ();
-  endif
-  files = {};
-  deps = true;
-  action = "none";
-  verbose = false;
-  octave_forge = false;
-  for i = 1:numel (varargin)
-    switch (varargin{i})
-      case "-nodeps"
-        deps = false;
-      ## TODO completely remove these warnings after some releases.
-      case "-noauto"
-        warning ("Octave:deprecated-option",
-                 ["pkg: autoload is no longer supported.  The -noauto "...
-                  "option is no longer required."]);
-      case "-auto"
-        warning ("Octave:deprecated-option",
-                 ["pkg: autoload is no longer supported.  Add a "...
-                  "'pkg load ...' command to octaverc instead."]);
-      case "-verbose"
-        verbose = true;
-        ## Send verbose output to pager immediately.  Change setting locally.
-        page_output_immediately (true, "local");
-      case "-forge"
-        if (! __octave_config_info__ ("CURL_LIBS"))
-          error ("pkg: can't download from Octave Forge without the cURL library");
-        endif
-        octave_forge = true;
-      case "-local"
-        global_install = false;
-        if (! user_prefix)
-          [prefix, archprefix] = default_prefix (global_install);
-        endif
-      case "-global"
-        global_install = true;
-        if (! user_prefix)
-          [prefix, archprefix] = default_prefix (global_install);
-        endif
-      case available_actions
-        if (! strcmp (action, "none"))
-          error ("pkg: more than one action specified");
-        endif
-        action = varargin{i};
-      otherwise
-        files{end+1} = varargin{i};
-    endswitch
-  endfor
 
   if (octave_forge && ! any (strcmp (action, {"install", "list"})))
     error ("pkg: '-forge' can only be used with install or list");
@@ -528,26 +450,6 @@ function [local_packages, global_packages] = pkg (varargin)
                 if (success != 1)
                   error ("pkg: failed downloading '%s': %s", file, msg);
                 endif
-                ## Verify that download is a tarball,
-                ## to protect against ISP DNS hijacking.
-                ## FIXME: Need a test which does not rely on external OS.
-                #{
-                if (isunix ())
-                  [ok, file_descr] = ...
-                    system (sprintf ('file "%s" | cut -d ":" -f 2', ...
-                                     local_files{end}));
-                  if (! ok)
-                    if (strfind (file_descr, "HTML"))
-                      error (["pkg: Invalid package file downloaded from " ...
-                              "%s\n" ...
-                              "File is HTML, not a tar archive."], ...
-                             file);
-                    endif
-                  else
-                    ## Ignore: maybe something went wrong with the "file" call.
-                  endif
-                endif
-                #}
               else
                 looks_like_pkg_name = regexp (file, '^[\w-]+$');
                 if (looks_like_pkg_name)
@@ -565,8 +467,8 @@ function [local_packages, global_packages] = pkg (varargin)
             endfor
           endif
         endif
-        install (files, deps, prefix, archprefix, verbose, local_list,
-                 global_list, global_install);
+        pkg_install (files, deps, prefix, archprefix, verbose, local_list,
+                     global_list, global_install);
 
       unwind_protect_cleanup
         [~] = cellfun ("unlink", local_files);
@@ -576,22 +478,13 @@ function [local_packages, global_packages] = pkg (varargin)
       end_unwind_protect
 
     case "uninstall"
-      if (isempty (files))
-        error ("pkg: uninstall action requires at least one package name");
-      endif
-      uninstall (files, deps, verbose, local_list, global_list, global_install);
+      pkg_uninstall (files, deps, verbose, local_list, global_list, global_install);
 
     case "load"
-      if (isempty (files))
-        error ("pkg: load action requires at least one package name");
-      endif
-      load_packages (files, deps, local_list, global_list);
+      pkg_load (files, deps, local_list, global_list);
 
     case "unload"
-      if (isempty (files))
-        error ("pkg: unload action requires at least one package name");
-      endif
-      unload_packages (files, deps, local_list, global_list);
+      pkg_unload (files, deps, local_list, global_list);
 
     case "prefix"
       if (isempty (files) && ! nargout)
@@ -612,24 +505,7 @@ function [local_packages, global_packages] = pkg (varargin)
       endif
 
     case "local_list"
-      if (isempty (files) && ! nargout)
-        disp (local_list);
-      elseif (isempty (files) && nargout)
-        local_packages = local_list;
-      elseif (numel (files) == 1 && ! nargout && ischar (files{1}))
-        local_list = tilde_expand (files{1});
-        if (! exist (local_list, "file"))
-          try
-            ## Force file to be created
-            fclose (fopen (local_list, "wt"));
-          catch
-            error ("pkg: cannot create file %s", local_list);
-          end_try_catch
-        endif
-        local_list = canonicalize_file_name (local_list);
-      else
-        error ("pkg: specify a local_list file, or request an output argument");
-      endif
+      pkg_local_list (varargin{1});
 
     case "global_list"
       if (isempty (files) && ! nargout)
@@ -653,8 +529,8 @@ function [local_packages, global_packages] = pkg (varargin)
 
     case "rebuild"
       if (global_install)
-        global_packages = rebuild (prefix, archprefix, global_list, files,
-                                   verbose);
+        global_packages = pkg_rebuild (prefix, archprefix, global_list, files,
+                                       verbose);
         global_packages = save_order (global_packages);
         if (ispc)
           ## On Windows ensure LFN paths are saved rather than 8.3 style paths
@@ -666,8 +542,8 @@ function [local_packages, global_packages] = pkg (varargin)
           local_packages = global_packages;
         endif
       else
-        local_packages = rebuild (prefix, archprefix, local_list, files,
-                                  verbose);
+        local_packages = pkg_rebuild (prefix, archprefix, local_list, files,
+                                      verbose);
         local_packages = save_order (local_packages);
         if (ispc)
           local_packages = standardize_paths (local_packages);
@@ -679,18 +555,16 @@ function [local_packages, global_packages] = pkg (varargin)
       endif
 
     case "build"
-      if (numel (files) < 2)
-        error ("pkg: build action requires build directory and at least one filename");
-      endif
-      build (files{1}, files(2:end), verbose);
+      build (files, verbose);
 
     case "describe"
       ## FIXME: name of the output variables is inconsistent with their content
       if (nargout)
-        [local_packages, global_packages] = describe (files, verbose,
-                                                      local_list, global_list);
+        [local_packages, global_packages] = pkg_describe (files, verbose,
+                                                          local_list,
+                                                          global_list);
       else
-        describe (files, verbose, local_list, global_list);
+        pkg_describe (files, verbose, local_list, global_list);
       endif
 
     case "update"
@@ -734,7 +608,7 @@ function [local_packages, global_packages] = pkg (varargin)
       endif
       ## Make sure the requested packages are loaded
       orig_path = path ();
-      load_packages (files, deps, local_list, global_list);
+      pkg_load (files, deps, local_list, global_list);
       ## Test packages one by one
       installed_pkgs_lst = installed_packages (local_list, global_list, files);
       unwind_protect
@@ -760,5 +634,131 @@ function [local_packages, global_packages] = pkg (varargin)
     otherwise
       error ("pkg: invalid action.  See 'help pkg' for available actions");
   endswitch
+
+endfunction
+
+
+function [url, local_file] = get_forge_download (name)
+  [ver, url] = get_forge_pkg (name);
+  local_file = tempname (tempdir (), [name "-" ver "-"]);
+  local_file = [local_file ".tar.gz"];
+endfunction
+
+
+function [ver, url] = get_forge_pkg (name)
+
+## Try to discover the current version of an Octave Forge package from the web,
+## using a working internet connection and the urlread function.
+## If two output arguments are requested, also return an address from which
+## to download the file.
+
+  ## Verify that name is valid.
+  if (! (ischar (name) && rows (name) == 1 && ndims (name) == 2))
+    error ("get_forge_pkg: package NAME must be a string");
+  elseif (! all (isalnum (name) | name == "-" | name == "." | name == "_"))
+    error ("get_forge_pkg: invalid package NAME: %s", name);
+  endif
+
+  name = tolower (name);
+
+  ## Try to download package's index page.
+  [html, succ] = urlread (sprintf ("https://packages.octave.org/%s/index.html",
+                                   name));
+  if (succ)
+    ## Remove blanks for simpler matching.
+    html(isspace (html)) = [];
+    ## Good.  Let's grep for the version.
+    pat = "<tdclass=""package_table"">PackageVersion:</td><td>([\\d.]*)</td>";
+    t = regexp (html, pat, "tokens");
+    if (isempty (t) || isempty (t{1}))
+      error ("get_forge_pkg: could not read version number from package's page");
+    else
+      ver = t{1}{1};
+      if (nargout > 1)
+        ## Build download string.
+        pkg_file = sprintf ("%s-%s.tar.gz", name, ver);
+        url = ["https://packages.octave.org/download/" pkg_file];
+        ## Verify that the package string exists on the page.
+        if (isempty (strfind (html, pkg_file)))
+          warning ("get_forge_pkg: download URL not verified");
+        endif
+      endif
+    endif
+  else
+    ## Try get the list of all packages.
+    [html, succ] = urlread ("https://packages.octave.org/list_packages.php");
+    if (! succ)
+      error ("get_forge_pkg: could not read URL, please verify internet connection");
+    endif
+    t = strsplit (html);
+    if (any (strcmp (t, name)))
+      error ("get_forge_pkg: package NAME exists, but index page not available");
+    endif
+    ## Try a simplistic method to determine similar names.
+    function d = fdist (x)
+      len1 = length (name);
+      len2 = length (x);
+      if (len1 <= len2)
+        d = sum (abs (name(1:len1) - x(1:len1))) + sum (x(len1+1:end));
+      else
+        d = sum (abs (name(1:len2) - x(1:len2))) + sum (name(len2+1:end));
+      endif
+    endfunction
+    dist = cellfun ("fdist", t);
+    [~, i] = min (dist);
+    error ("get_forge_pkg: package not found: ""%s"".  Maybe you meant ""%s?""",
+           name, t{i});
+  endif
+
+endfunction
+
+
+function list = list_forge_packages ()
+
+  [list, succ] = urlread ("https://packages.octave.org/list_packages.php");
+  if (! succ)
+    error ("pkg: could not read URL, please verify internet connection");
+  endif
+
+  list = ostrsplit (list, " \n\t", true);
+
+  if (nargout == 0)
+    ## FIXME: This is a convoluted way to get the latest version number
+    ##        for each package in less than 56 seconds (bug #39479).
+
+    ## Get the list of all packages ever published
+    [html, succ] = urlread ('https://sourceforge.net/projects/octave/files/Octave%20Forge%20Packages/Individual%20Package%20Releases');
+
+    if (! succ)
+      error ("pkg: failed to fetch list of packages from sourceforge.net");
+    endif
+
+    ## Scrape the HTML
+    ptn = '<tr\s+title="(.*?gz)"\s+class="file';
+    [succ, tok] = regexp (html, ptn, "start", "tokens");
+    if (isempty (succ))
+      error ("pkg: failed to parse list of packages from sourceforge.net");
+    endif
+
+    ## Remove version numbers and produce unique list of packages
+    files = cellstr (tok);
+    pkg_names = cellstr (regexp (files, '^.*?(?=-\d)', "match"));
+    [~, idx] = unique (pkg_names, "first");
+    files = files(idx);
+
+    page_screen_output (false, "local");
+    puts ("Octave Forge provides these packages:\n");
+    for i = 1:length (list)
+      pkg_nm = list{i};
+      idx = regexp (files, sprintf ('^%s(?=-\\d)', pkg_nm));
+      idx = ! cellfun (@isempty, idx);
+      if (any (idx))
+        ver = regexp (files{idx}, '\d+\.\d+\.\d+', "match"){1};
+      else
+        ver = "unknown";
+      endif
+      printf ("  %s %s\n", pkg_nm, ver);
+    endfor
+  endif
 
 endfunction

@@ -24,11 +24,11 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {[@var{pkg_desc_list}, @var{flag}] =} describe (@var{pkgnames}, @var{verbose}, @var{local_list}, @var{global_list})
+## @deftypefn {} {[@var{pkg_desc_list}, @var{flag}] =} pkg_describe (@var{pkgnames}, @var{verbose}, @var{local_list}, @var{global_list})
 ## Undocumented internal function.
 ## @end deftypefn
 
-function [pkg_desc_list, flag] = describe (pkgnames, verbose, local_list, global_list)
+function [pkg_desc_list, flag] = pkg_describe (pkgnames, verbose, local_list, global_list)
 
   ## Get the list of installed packages.
   installed_pkgs_lst = installed_packages (local_list, global_list);

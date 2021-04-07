@@ -24,9 +24,40 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} load_packages_and_dependencies (@var{idx}, @var{handle_deps}, @var{installed_pkgs_lst}, @var{global_install})
+## @deftypefn {} {} pkg_load (@var{files}, @var{handle_deps}, @var{local_list}, @var{global_list})
 ## Undocumented internal function.
 ## @end deftypefn
+
+function pkg_load (files, handle_deps, local_list, global_list)
+
+  if (isempty (files))
+    error ("pkg: load action requires at least one package name");
+  endif
+
+  installed_pkgs_lst = installed_packages (local_list, global_list);
+  num_packages = length (installed_pkgs_lst);
+
+  ## Read package names and installdirs into a more convenient format.
+  pnames = pdirs = cell (1, num_packages);
+  for i = 1:num_packages
+    pnames{i} = installed_pkgs_lst{i}.name;
+    pdirs{i} = installed_pkgs_lst{i}.dir;
+  endfor
+
+  idx = [];
+  for i = 1:length (files)
+    idx2 = find (strcmp (pnames, files{i}));
+    if (! any (idx2))
+      error ("package %s is not installed", files{i});
+    endif
+    idx(end + 1) = idx2;
+  endfor
+
+  ## Load the packages, but take care of the ordering of dependencies.
+  load_packages_and_dependencies (idx, handle_deps, installed_pkgs_lst, true);
+
+endfunction
+
 
 function load_packages_and_dependencies (idx, handle_deps, installed_pkgs_lst,
                                          global_install)
@@ -35,14 +66,15 @@ function load_packages_and_dependencies (idx, handle_deps, installed_pkgs_lst,
   dirs = {};
   execpath = EXEC_PATH ();
   for i = idx
-    ndir = installed_pkgs_lst{i}.dir;
+    desc = installed_pkgs_lst{i};
+    desc.archdir = fullfile (desc.archprefix, getarch ());
+    ndir = desc.dir;
     dirs{end+1} = ndir;
     if (isfolder (fullfile (dirs{end}, "bin")))
       execpath = [execpath pathsep() fullfile(dirs{end}, "bin")];
     endif
-    tmpdir = getarchdir (installed_pkgs_lst{i});
-    if (isfolder (tmpdir))
-      dirs{end + 1} = tmpdir;
+    if (isfolder (desc.archdir))
+      dirs{end + 1} = desc.archdir;
       if (isfolder (fullfile (dirs{end}, "bin")))
         execpath = [execpath pathsep() fullfile(dirs{end}, "bin")];
       endif

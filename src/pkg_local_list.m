@@ -24,10 +24,34 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{archdir} =} getarchdir (@var{desc})
+## @deftypefn {} {@var{list_file} =} pkg_local_list (@var{list_file})
 ## Undocumented internal function.
 ## @end deftypefn
 
-function archdir = getarchdir (desc)
-  archdir = fullfile (desc.archprefix, getarch ());
+function list_file = pkg_local_list (list_file)
+
+  persistent local_list = tilde_expand (fullfile ("~", ".octave_packages"));
+
+  ## Do not get removed from memory, even if "clear" is called.
+  mlock ();
+ 
+  if (! nargin && ! nargout)
+    disp (local_list);
+  elseif (! nargin && nargout)
+    list_file = local_list;
+  elseif (nargin && ! nargout && ischar (list_file))
+    local_list = tilde_expand (list_file);
+    if (! exist (local_list, "file"))
+      try
+        ## Force file to be created
+        fclose (fopen (local_list, "wt"));
+      catch
+        error ("pkg: cannot create file %s", local_list);
+      end_try_catch
+    endif
+    local_list = canonicalize_file_name (local_list);
+  else
+    error ("pkg: specify a local_list file, or request an output argument");
+  endif
+
 endfunction

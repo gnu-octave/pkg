@@ -24,12 +24,16 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} uninstall (@var{pkgnames}, @var{handle_deps}, @var{verbose}, @var{local_list}, @var{global_list}, @var{global_install})
+## @deftypefn {} {} pkg_uninstall (@var{pkgnames}, @var{handle_deps}, @var{verbose}, @var{local_list}, @var{global_list}, @var{global_install})
 ## Undocumented internal function.
 ## @end deftypefn
 
-function uninstall (pkgnames, handle_deps, verbose, local_list,
-                    global_list, global_install)
+function pkg_uninstall (pkgnames, handle_deps, verbose, local_list,
+                        global_list, global_install)
+
+  if (isempty (pkgnames))
+    error ("pkg: uninstall action requires at least one package name");
+  endif
 
   ## Get the list of installed packages.
   [local_packages, global_packages] = installed_packages (local_list,
@@ -107,6 +111,7 @@ function uninstall (pkgnames, handle_deps, verbose, local_list,
     ## Delete the directories containing the packages.
     for i = delete_idx
       desc = installed_pkgs_lst{i};
+      desc.archdir = fullfile (desc.archprefix, getarch ());
       ## If an 'on_uninstall.m' exist, call it!
       if (exist (fullfile (desc.dir, "packinfo", "on_uninstall.m"), "file"))
         wd = pwd ();
@@ -117,13 +122,13 @@ function uninstall (pkgnames, handle_deps, verbose, local_list,
       ## Do the actual deletion.
       if (desc.loaded)
         rmpath (desc.dir);
-        if (isfolder (getarchdir (desc)))
-          rmpath (getarchdir (desc));
+        if (isfolder (desc.archdir))
+          rmpath (desc.archdir);
         endif
       endif
       if (isfolder (desc.dir))
         ## FIXME: If first call to rmdir fails, then error() will
-        ##        stop further processing of getarchdir & archprefix.
+        ##        stop further processing of desc.archdir & desc.archprefix.
         ##        If this is, in fact, correct, then calls should
         ##        just be shortened to rmdir (...) and let rmdir()
         ##        report failure and reason for failure.
@@ -131,9 +136,9 @@ function uninstall (pkgnames, handle_deps, verbose, local_list,
         if (status != 1 && isfolder (desc.dir))
           error ("couldn't delete directory %s: %s", desc.dir, msg);
         endif
-        [status, msg] = rmdir (getarchdir (desc), "s");
-        if (status != 1 && isfolder (getarchdir (desc)))
-          error ("couldn't delete directory %s: %s", getarchdir (desc), msg);
+        [status, msg] = rmdir (desc.archdir, "s");
+        if (status != 1 && isfolder (desc.archdir))
+          error ("couldn't delete directory %s: %s", desc.archdir, msg);
         endif
         if (dirempty (desc.archprefix))
           sts = rmdir (desc.archprefix, "s");

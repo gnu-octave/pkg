@@ -24,11 +24,15 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} unload_packages (@var{files}, @var{handle_deps}, @var{local_list}, @var{global_list})
+## @deftypefn {} {} pkg_unload (@var{files}, @var{handle_deps}, @var{local_list}, @var{global_list})
 ## Undocumented internal function.
 ## @end deftypefn
 
-function unload_packages (files, handle_deps, local_list, global_list)
+function pkg_unload (files, handle_deps, local_list, global_list)
+
+  if (isempty (files))
+    error ("pkg: unload action requires at least one package name");
+  endif
 
   installed_pkgs_lst = installed_packages (local_list, global_list);
   num_packages = numel (installed_pkgs_lst);
@@ -84,10 +88,10 @@ function unload_packages (files, handle_deps, local_list, global_list)
   ## Check for architecture dependent directories.
   archdirs = {};
   for i = 1:numel (dirs)
-    tmpdir = getarchdir (desc{i});
-    if (isfolder (tmpdir))
+    archdir = fullfile (desc{i}.archprefix, getarch ());
+    if (isfolder (archdir))
       archdirs{end+1} = dirs{i};
-      archdirs{end+1} = tmpdir;
+      archdirs{end+1} = archdir;
     else
       archdirs{end+1} = dirs{i};
     endif

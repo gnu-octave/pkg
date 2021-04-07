@@ -24,7 +24,7 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} build (@var{builddir}, @var{tarballs}, @var{verbose})
+## @deftypefn {} {} pkg_build (@var{builddir}, @var{tarballs}, @var{verbose})
 ## Prepare binary packages from Octave source packages.
 ##
 ## Boils down to (for each in @var{tarballs}):
@@ -39,11 +39,18 @@
 ##
 ## @end deftypefn
 
-function build (builddir, tarballs, verbose)
+function pkg_build (files, verbose)
 
-  if (nargin != 3)
+  if (nargin != 2)
     print_usage ();
   endif
+
+  if (numel (files) < 2)
+    error ("pkg: build action requires build directory and at least one filename");
+  endif
+
+  builddir = files{1};
+  tarballs = files(2:end);
 
   if (! isfolder (builddir))
     warning ("creating build directory %s", builddir);
