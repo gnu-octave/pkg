@@ -174,31 +174,11 @@
 ## The package can be uninstalled anyway by using the @option{-nodeps} option.
 ##
 ## @item load
-## Add named packages to the path.  After loading a package it is
-## possible to use the functions provided by the package.  For example,
+## Add named packages to the Octave load path.
 ##
 ## @example
-## pkg load image
+## help pkg_load
 ## @end example
-##
-## @noindent
-## adds the @code{image} package to the path.
-##
-## Note: When loading a package, @code{pkg} will automatically try to load
-## any unloaded dependencies as well, unless the @option{-nodeps} flag has
-## been specified.  For example,
-##
-## @example
-## pkg load signal
-## @end example
-##
-## @noindent
-## adds the @code{signal} package and also tries to load its dependency: the
-## @code{control} package.  Be aware that the functionality of package(s)
-## loaded will probably be impacted by use of the @option{-nodeps} flag.  Even
-## if necessary dependencies are loaded later, the functionality of top-level
-## packages can still be affected because the optimal loading order may not
-## have been followed.
 ##
 ## @item unload
 ## Remove named packages from the path.  After unloading a package it is
@@ -399,7 +379,7 @@ function [local_packages, global_packages] = pkg (varargin)
       pkg_uninstall (files, deps, verbose, local_list, global_list, global_install);
 
     case "load"
-      pkg_load (files, deps);
+      pkg_load (varargin{:});
 
     case "unload"
       pkg_unload (files, deps);
@@ -454,7 +434,6 @@ function [local_packages, global_packages] = pkg (varargin)
       build (files, verbose);
 
     case "describe"
-      ## FIXME: name of the output variables is inconsistent with their content
       if (nargout)
         [local_packages, global_packages] = pkg_describe (files, verbose);
       else

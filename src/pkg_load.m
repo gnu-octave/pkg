@@ -24,14 +24,42 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_load (@var{files}, @var{handle_deps})
-## Undocumented internal function.
+## @deftypefn  {} {} pkg_load (@var{files})
+## @deftypefnx {} {} pkg_load (@var{files}, @option{-nodeps})
+## Add named packages @var{files} to the Octave load path.
+##
+## After loading a package it is possible to use the functions provided by
+## the package.  For example,
+##
+## @example
+## pkg load image
+## @end example
+##
+## adds the "image"-package to the path.
+##
+## Note: When loading a package, @code{pkg} will automatically try to load
+## any unloaded dependencies as well, unless the @option{-nodeps} flag has
+## been specified.  For example,
+##
+## @example
+## pkg load signal
+## @end example
+##
+## adds the "signal"-package and also tries to load its dependency: the
+## "control"-package.  Be aware that the functionality of package(s)
+## loaded will probably be impacted by use of the @option{-nodeps} flag.  Even
+## if necessary dependencies are loaded later, the functionality of top-level
+## packages can still be affected because the optimal loading order may not
+## have been followed.
 ## @end deftypefn
 
-function pkg_load (files, handle_deps)
+function pkg_load (varargin)
 
-  if (isempty (files))
-    error ("pkg: load action requires at least one package name");
+  params = parse_parameter ("list", varargin{:});
+
+  if ((numel (params.flags) > 1) || isempty (params.other) ...
+      || (! isempty (params.flags) && ! params.flag.nodeps))
+    print_usage ();
   endif
 
   installed_pkgs_lst = pkg_list ();
@@ -45,16 +73,16 @@ function pkg_load (files, handle_deps)
   endfor
 
   idx = [];
-  for i = 1:length (files)
-    idx2 = find (strcmp (pnames, files{i}));
+  for i = 1:length (params.other)
+    idx2 = find (strcmp (pnames, params.other{i}));
     if (! any (idx2))
-      error ("package %s is not installed", files{i});
+      error ("package %s is not installed", params.other{i});
     endif
     idx(end + 1) = idx2;
   endfor
 
   ## Load the packages, but take care of the ordering of dependencies.
-  load_packages_and_dependencies (idx, handle_deps, installed_pkgs_lst, true);
+  load_packages_and_dependencies (idx, ! params.flag.nodeps, installed_pkgs_lst, true);
 
 endfunction
 
@@ -93,10 +121,11 @@ function load_packages_and_dependencies (idx, handle_deps, installed_pkgs_lst,
     EXEC_PATH (execpath);
   endif
 
+  ## FIXME: Octave 7?
   ## Update lexer for autocompletion if necessary
-  if (isguirunning && (length (idx) > 0))
-    __event_manager_update_gui_lexer__;
-  endif
+  #if (isguirunning && (length (idx) > 0))
+  #  __event_manager_update_gui_lexer__;
+  #endif
 
 endfunction
 
