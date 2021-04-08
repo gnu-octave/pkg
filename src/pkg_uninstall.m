@@ -36,8 +36,7 @@ function pkg_uninstall (pkgnames, handle_deps, verbose, local_list,
   endif
 
   ## Get the list of installed packages.
-  [local_packages, global_packages] = installed_packages (local_list,
-                                                          global_list);
+  [local_packages, global_packages] = pkg_list ();
   if (global_install)
     installed_pkgs_lst = {local_packages{:}, global_packages{:}};
   else

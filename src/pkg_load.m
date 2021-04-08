@@ -24,17 +24,17 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_load (@var{files}, @var{handle_deps}, @var{local_list}, @var{global_list})
+## @deftypefn {} {} pkg_load (@var{files}, @var{handle_deps})
 ## Undocumented internal function.
 ## @end deftypefn
 
-function pkg_load (files, handle_deps, local_list, global_list)
+function pkg_load (files, handle_deps)
 
   if (isempty (files))
     error ("pkg: load action requires at least one package name");
   endif
 
-  installed_pkgs_lst = installed_packages (local_list, global_list);
+  installed_pkgs_lst = pkg_list ();
   num_packages = length (installed_pkgs_lst);
 
   ## Read package names and installdirs into a more convenient format.

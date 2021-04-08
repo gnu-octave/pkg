@@ -24,14 +24,14 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {[@var{pkg_desc_list}, @var{flag}] =} pkg_describe (@var{pkgnames}, @var{verbose}, @var{local_list}, @var{global_list})
+## @deftypefn {} {[@var{pkg_desc_list}, @var{flag}] =} pkg_describe (@var{pkgnames}, @var{verbose})
 ## Undocumented internal function.
 ## @end deftypefn
 
-function [pkg_desc_list, flag] = pkg_describe (pkgnames, verbose, local_list, global_list)
+function [pkg_desc_list, flag] = pkg_describe (pkgnames, verbose)
 
   ## Get the list of installed packages.
-  installed_pkgs_lst = installed_packages (local_list, global_list);
+  installed_pkgs_lst = pkg_list ();
   num_packages = length (installed_pkgs_lst);
   ## Add inverse dependencies to "installed_pkgs_lst"
   installed_pkgs_lst = get_inverse_dependencies (installed_pkgs_lst);

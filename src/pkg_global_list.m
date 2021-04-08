@@ -24,31 +24,32 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{list_file} =} pkg_local_list (@var{list_file})
-## Get or set the file containing the list of locally installed packages.
+## @deftypefn {} {@var{list_file} =} pkg_global_list (@var{list_file})
+## Get or set the file containing the list of globally installed packages.
 ##
-## Locally installed packages are only available to the current user.
+## Globally installed packages are available to all users.
 ## For example getting
 ##
 ## @example
-## list_file = pkg_local_list ()
+## list_file = pkg_global_list ()
 ## @end example
 ##
 ## and setting the file
 ##
 ## @example
-## pkg_local_list ("~/.octave_packages")
+## pkg_global_list ("/usr/share/octave/octave_packages")
 ## @end example
 ## @end deftypefn
 
-function out_file = pkg_local_list (varargin)
+function out_file = pkg_global_list (varargin)
 
-  persistent local_list = tilde_expand (fullfile ("~", ".octave_packages"));
+  persistent global_list = fullfile (OCTAVE_HOME (), "share", "octave",
+                                     "octave_packages");
 
   ## Do not get removed from memory, even if "clear" is called.
   mlock ();
 
-  params = parse_parameter ("local_list", varargin{:});
+  params = parse_parameter ("global_list", varargin{:});
 
   if (! isempty (params.flags) || (numel (params.other) > 1))
     print_usage ();
@@ -57,7 +58,7 @@ function out_file = pkg_local_list (varargin)
   if (numel (params.other) == 1)
     list_file = params.other{1};
     if (! ischar (list_file))
-      error ("pkg: invalid local_list file");
+      error ("pkg: invalid global_list file");
     endif
     list_file = tilde_expand (list_file);
     if (! exist (list_file, "file"))
@@ -68,13 +69,13 @@ function out_file = pkg_local_list (varargin)
         error ("pkg: cannot create file %s", list_file);
       end_try_catch
     endif
-    local_list = canonicalize_file_name (list_file);
+    global_list = canonicalize_file_name (list_file);
   endif
 
   if ((nargout == 0) && isempty (params.other))
-    disp (local_list);
+    disp (global_list);
   else
-    out_file = local_list;
+    out_file = global_list;
   endif
 
 endfunction

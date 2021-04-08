@@ -24,20 +24,75 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {[@var{out1}, @var{out2}] =} installed_packages (@var{local_list}, @var{global_list}, @var{pkgname})
-## Undocumented internal function.
+## @deftypefn {} {[@var{out1}, @var{out2}] =} pkg_list (@var{pkgname})
+## Show the list of currently installed packages.  For example,
+##
+## @example
+## pkg list
+## @end example
+##
+## @noindent
+## will produce a short report with the package name, version, and installation
+## directory for each installed package.  Supply a package name to limit
+## reporting to a particular package.  For example:
+##
+## @example
+## pkg list image
+## @end example
+##
+## If a single return argument is requested then @code{pkg} returns a cell
+## array where each element is a structure with information on a single
+## package.
+##
+## @example
+## installed_packages = pkg ("list")
+## @end example
+##
+## If two output arguments are requested @code{pkg} splits the list of
+## installed packages into those which were installed by the current user,
+## and those which were installed by the system administrator.
+##
+## @example
+## [user_packages, system_packages] = pkg ("list")
+## @end example
+##
+## The @qcode{"-forge"} option lists packages available at the Octave Forge
+## repository.  This requires an internet connection and the cURL library.
+## For example:
+##
+## @example
+## oct_forge_pkgs = pkg ("list", "-forge")
+## @end example
 ## @end deftypefn
 
-function [out1, out2] = installed_packages (local_list, global_list, pkgname = {})
+function [out1, out2] = pkg_list (varargin)
+
+  params = parse_parameter ("list", varargin{:});
+
+  ## FIXME: Legacy Octave Forge support.
+  if (params.flag.octave_forge)
+    if (nargout)
+      out1 = list_forge_packages ();
+    else
+      list_forge_packages ();
+    endif
+    return;
+  endif
+
+  if (! isempty (params.flags))
+    print_usage ();
+  endif
+
+  pkgname = params.other;
 
   ## Get the list of installed packages.
   try
-    local_packages = load (local_list).local_packages;
+    local_packages = load (pkg_local_list ()).local_packages;
   catch
     local_packages = {};
   end_try_catch
   try
-    global_packages = load (global_list).global_packages;
+    global_packages = load (pkg_global_list ()).global_packages;
     global_packages = expand_rel_paths (global_packages);
     if (ispc)
       ## On Windows ensure 8.3 style paths are turned into LFN paths
@@ -177,5 +232,56 @@ function pkg_list = expand_rel_paths (pkg_list)
       pkg_list{i}.archprefix = [ loc pkg_list{i}.archprefix(7:end) ];
     endif
   endfor
+
+endfunction
+
+
+function list = list_forge_packages ()
+
+  [list, succ] = urlread ("https://packages.octave.org/list_packages.php");
+  if (! succ)
+    error ("pkg: could not read URL, please verify internet connection");
+  endif
+
+  list = ostrsplit (list, " \n\t", true);
+
+  if (nargout == 0)
+    ## FIXME: This is a convoluted way to get the latest version number
+    ##        for each package in less than 56 seconds (bug #39479).
+
+    ## Get the list of all packages ever published
+    [html, succ] = urlread ('https://sourceforge.net/projects/octave/files/Octave%20Forge%20Packages/Individual%20Package%20Releases');
+
+    if (! succ)
+      error ("pkg: failed to fetch list of packages from sourceforge.net");
+    endif
+
+    ## Scrape the HTML
+    ptn = '<tr\s+title="(.*?gz)"\s+class="file';
+    [succ, tok] = regexp (html, ptn, "start", "tokens");
+    if (isempty (succ))
+      error ("pkg: failed to parse list of packages from sourceforge.net");
+    endif
+
+    ## Remove version numbers and produce unique list of packages
+    files = cellstr (tok);
+    pkg_names = cellstr (regexp (files, '^.*?(?=-\d)', "match"));
+    [~, idx] = unique (pkg_names, "first");
+    files = files(idx);
+
+    page_screen_output (false, "local");
+    puts ("Octave Forge provides these packages:\n");
+    for i = 1:length (list)
+      pkg_nm = list{i};
+      idx = regexp (files, sprintf ('^%s(?=-\\d)', pkg_nm));
+      idx = ! cellfun (@isempty, idx);
+      if (any (idx))
+        ver = regexp (files{idx}, '\d+\.\d+\.\d+', "match"){1};
+      else
+        ver = "unknown";
+      endif
+      printf ("  %s %s\n", pkg_nm, ver);
+    endfor
+  endif
 
 endfunction

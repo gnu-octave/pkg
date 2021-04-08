@@ -41,8 +41,7 @@ function pkg_install (files, handle_deps, prefix, archprefix, verbose,
   endif
 
   ## Get the list of installed packages.
-  [local_packages, global_packages] = installed_packages (local_list,
-                                                          global_list);
+  [local_packages, global_packages] = pkg_list ();
 
   installed_pkgs_lst = {local_packages{:}, global_packages{:}};
 

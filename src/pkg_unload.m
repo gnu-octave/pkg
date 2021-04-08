@@ -24,17 +24,17 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_unload (@var{files}, @var{handle_deps}, @var{local_list}, @var{global_list})
+## @deftypefn {} {} pkg_unload (@var{files}, @var{handle_deps})
 ## Undocumented internal function.
 ## @end deftypefn
 
-function pkg_unload (files, handle_deps, local_list, global_list)
+function pkg_unload (files, handle_deps)
 
   if (isempty (files))
     error ("pkg: unload action requires at least one package name");
   endif
 
-  installed_pkgs_lst = installed_packages (local_list, global_list);
+  installed_pkgs_lst = pkg_list ();
   num_packages = numel (installed_pkgs_lst);
   ## Add inverse dependencies to field "invdeps" of installed_pkgs_lst
   installed_pkgs_lst = get_inverse_dependencies (installed_pkgs_lst);

@@ -24,11 +24,11 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{descriptions} =} pkg_rebuild (@var{prefix}, @var{archprefix}, @var{list}, @var{files}, @var{verbose})
+## @deftypefn {} {@var{descriptions} =} pkg_rebuild (@var{prefix}, @var{archprefix}, @var{files}, @var{verbose})
 ## Undocumented internal function.
 ## @end deftypefn
 
-function descriptions = pkg_rebuild (prefix, archprefix, list, files, verbose)
+function descriptions = pkg_rebuild (prefix, archprefix, files, verbose)
 
   if (isempty (files))
     if (! exist (prefix, "dir"))
@@ -42,7 +42,7 @@ function descriptions = pkg_rebuild (prefix, archprefix, list, files, verbose)
       dirlist([1,2]) = [];
     endif
   else
-    old_descriptions = installed_packages (list, list);
+    old_descriptions = pkg_list ();
     wd = pwd ();
     unwind_protect
       cd (prefix);

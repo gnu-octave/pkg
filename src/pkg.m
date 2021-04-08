@@ -212,43 +212,10 @@
 ## packages as the required loading order may be incorrect.
 ##
 ## @item list
-## Show the list of currently installed packages.  For example,
+## List installed packages.
 ##
 ## @example
-## pkg list
-## @end example
-##
-## @noindent
-## will produce a short report with the package name, version, and installation
-## directory for each installed package.  Supply a package name to limit
-## reporting to a particular package.  For example:
-##
-## @example
-## pkg list image
-## @end example
-##
-## If a single return argument is requested then @code{pkg} returns a cell
-## array where each element is a structure with information on a single
-## package.
-##
-## @example
-## installed_packages = pkg ("list")
-## @end example
-##
-## If two output arguments are requested @code{pkg} splits the list of
-## installed packages into those which were installed by the current user,
-## and those which were installed by the system administrator.
-##
-## @example
-## [user_packages, system_packages] = pkg ("list")
-## @end example
-##
-## The @qcode{"-forge"} option lists packages available at the Octave Forge
-## repository.  This requires an internet connection and the cURL library.
-## For example:
-##
-## @example
-## oct_forge_pkgs = pkg ("list", "-forge")
+## help pkg_list
 ## @end example
 ##
 ## @item describe
@@ -293,58 +260,24 @@
 ## @qcode{"Not loaded"} for each of the named packages.
 ##
 ## @item prefix
-## Set the installation prefix directory.  For example,
+## Set the installation prefix directory.
 ##
 ## @example
-## pkg prefix ~/my_octave_packages
-## @end example
-##
-## @noindent
-## sets the installation prefix to @file{~/my_octave_packages}.
-## Packages will be installed in this directory.
-##
-## It is possible to get the current installation prefix by requesting an
-## output argument.  For example:
-##
-## @example
-## pfx = pkg ("prefix")
-## @end example
-##
-## The location in which to install the architecture dependent files can be
-## independently specified with an addition argument.  For example:
-##
-## @example
-## pkg prefix ~/my_octave_packages ~/my_arch_dep_pkgs
+## help pkg_prefix
 ## @end example
 ##
 ## @item local_list
-## Set the file in which to look for information on locally
-## installed packages.  Locally installed packages are those that are
-## available only to the current user.  For example:
+## Get or set the file containing the list of locally installed packages.
 ##
 ## @example
-## pkg local_list ~/.octave_packages
-## @end example
-##
-## It is possible to get the current value of local_list with the following
-##
-## @example
-## pkg local_list
+## help pkg_local_list
 ## @end example
 ##
 ## @item global_list
-## Set the file in which to look for information on globally
-## installed packages.  Globally installed packages are those that are
-## available to all users.  For example:
+## Get or set the file containing the list of globally installed packages.
 ##
 ## @example
-## pkg global_list /usr/share/octave/octave_packages
-## @end example
-##
-## It is possible to get the current value of global_list with the following
-##
-## @example
-## pkg global_list
+## help pkg_global_list
 ## @end example
 ##
 ## @item build
@@ -380,33 +313,18 @@
 
 function [local_packages, global_packages] = pkg (varargin)
 
-  opts = parse_pkg_arguments ("none", varargin);
+  params = parse_parameter (varargin{:});
+  varargin = setdiff (varargin, params.action);
 
-  confirm_recursive_rmdir (false, "local");
-
-  if (octave_forge && ! any (strcmp (action, {"install", "list"})))
-    error ("pkg: '-forge' can only be used with install or list");
-  endif
-
-  ## Take action
-  switch (action)
+  ## Dispatch to function.
+  switch (params.action)
     case "list"
-      if (octave_forge)
-        if (nargout)
-          local_packages = list_forge_packages ();
-        else
-          list_forge_packages ();
-        endif
+      if (nargout == 1)
+        local_packages = pkg_list (varargin{:});
+      elseif (nargout > 1)
+        [local_packages, global_packages] = pkg_list (varargin{:});
       else
-        if (nargout == 1)
-          local_packages = installed_packages (local_list, global_list, files);
-        elseif (nargout > 1)
-          [local_packages, global_packages] = installed_packages (local_list,
-                                                                  global_list,
-                                                                  files);
-        else
-          installed_packages (local_list, global_list, files);
-        endif
+        pkg_list (varargin{:});
       endif
 
     case "install"
@@ -481,56 +399,35 @@ function [local_packages, global_packages] = pkg (varargin)
       pkg_uninstall (files, deps, verbose, local_list, global_list, global_install);
 
     case "load"
-      pkg_load (files, deps, local_list, global_list);
+      pkg_load (files, deps);
 
     case "unload"
-      pkg_unload (files, deps, local_list, global_list);
+      pkg_unload (files, deps);
 
     case "prefix"
-      if (isempty (files) && ! nargout)
-        printf ("Installation prefix:             %s\n", prefix);
-        printf ("Architecture dependent prefix:   %s\n", archprefix);
-      elseif (isempty (files) && nargout)
-        local_packages = prefix;
-        global_packages = archprefix;
-      elseif (numel (files) >= 1 && ischar (files{1}))
-        prefix = tilde_expand (files{1});
-        local_packages = prefix = make_absolute_filename (prefix);
-        user_prefix = true;
-        if (numel (files) >= 2 && ischar (files{2}))
-          archprefix = make_absolute_filename (tilde_expand (files{2}));
-        endif
+      if (nargout)
+        [local_packages, global_packages] = pkg_prefix (varargin{:});
       else
-        error ("pkg: prefix action requires a directory input, or an output argument");
+        pkg_prefix (varargin{:});
       endif
 
     case "local_list"
-      pkg_local_list (varargin{1});
+      if (nargout)
+        local_packages = pkg_local_list (varargin{:});
+      else
+        pkg_local_list (varargin{:});
+      endif
 
     case "global_list"
-      if (isempty (files) && ! nargout)
-        disp (global_list);
-      elseif (isempty (files) && nargout)
-        local_packages = global_list;
-      elseif (numel (files) == 1 && ! nargout && ischar (files{1}))
-        global_list = files{1};
-        if (! exist (global_list, "file"))
-          try
-            ## Force file to be created
-            fclose (fopen (files{1}, "wt"));
-          catch
-            error ("pkg: cannot create file %s", global_list);
-          end_try_catch
-        endif
-        global_list = canonicalize_file_name (global_list);
+      if (nargout)
+        local_packages = pkg_global_list (varargin{:});
       else
-        error ("pkg: specify a global_list file, or request an output argument");
+        pkg_global_list (varargin{:});
       endif
 
     case "rebuild"
       if (global_install)
-        global_packages = pkg_rebuild (prefix, archprefix, global_list, files,
-                                       verbose);
+        global_packages = pkg_rebuild (prefix, archprefix, files, verbose);
         global_packages = save_order (global_packages);
         if (ispc)
           ## On Windows ensure LFN paths are saved rather than 8.3 style paths
@@ -542,8 +439,7 @@ function [local_packages, global_packages] = pkg (varargin)
           local_packages = global_packages;
         endif
       else
-        local_packages = pkg_rebuild (prefix, archprefix, local_list, files,
-                                      verbose);
+        local_packages = pkg_rebuild (prefix, archprefix, files, verbose);
         local_packages = save_order (local_packages);
         if (ispc)
           local_packages = standardize_paths (local_packages);
@@ -560,15 +456,13 @@ function [local_packages, global_packages] = pkg (varargin)
     case "describe"
       ## FIXME: name of the output variables is inconsistent with their content
       if (nargout)
-        [local_packages, global_packages] = pkg_describe (files, verbose,
-                                                          local_list,
-                                                          global_list);
+        [local_packages, global_packages] = pkg_describe (files, verbose);
       else
-        pkg_describe (files, verbose, local_list, global_list);
+        pkg_describe (files, verbose);
       endif
 
     case "update"
-      installed_pkgs_lst = installed_packages (local_list, global_list);
+      installed_pkgs_lst = pkg_list ();
 
       ## Explicit list of packages to update, rather than all packages
       if (numel (files) > 0)
@@ -610,7 +504,7 @@ function [local_packages, global_packages] = pkg (varargin)
       orig_path = path ();
       pkg_load (files, deps, local_list, global_list);
       ## Test packages one by one
-      installed_pkgs_lst = installed_packages (local_list, global_list, files);
+      installed_pkgs_lst = pkg_list (files);
       unwind_protect
         for i = 1:numel (installed_pkgs_lst)
           printf ("Testing functions in package '%s':\n", files{i});
@@ -708,57 +602,6 @@ function [ver, url] = get_forge_pkg (name)
     [~, i] = min (dist);
     error ("get_forge_pkg: package not found: ""%s"".  Maybe you meant ""%s?""",
            name, t{i});
-  endif
-
-endfunction
-
-
-function list = list_forge_packages ()
-
-  [list, succ] = urlread ("https://packages.octave.org/list_packages.php");
-  if (! succ)
-    error ("pkg: could not read URL, please verify internet connection");
-  endif
-
-  list = ostrsplit (list, " \n\t", true);
-
-  if (nargout == 0)
-    ## FIXME: This is a convoluted way to get the latest version number
-    ##        for each package in less than 56 seconds (bug #39479).
-
-    ## Get the list of all packages ever published
-    [html, succ] = urlread ('https://sourceforge.net/projects/octave/files/Octave%20Forge%20Packages/Individual%20Package%20Releases');
-
-    if (! succ)
-      error ("pkg: failed to fetch list of packages from sourceforge.net");
-    endif
-
-    ## Scrape the HTML
-    ptn = '<tr\s+title="(.*?gz)"\s+class="file';
-    [succ, tok] = regexp (html, ptn, "start", "tokens");
-    if (isempty (succ))
-      error ("pkg: failed to parse list of packages from sourceforge.net");
-    endif
-
-    ## Remove version numbers and produce unique list of packages
-    files = cellstr (tok);
-    pkg_names = cellstr (regexp (files, '^.*?(?=-\d)', "match"));
-    [~, idx] = unique (pkg_names, "first");
-    files = files(idx);
-
-    page_screen_output (false, "local");
-    puts ("Octave Forge provides these packages:\n");
-    for i = 1:length (list)
-      pkg_nm = list{i};
-      idx = regexp (files, sprintf ('^%s(?=-\\d)', pkg_nm));
-      idx = ! cellfun (@isempty, idx);
-      if (any (idx))
-        ver = regexp (files{idx}, '\d+\.\d+\.\d+', "match"){1};
-      else
-        ver = "unknown";
-      endif
-      printf ("  %s %s\n", pkg_nm, ver);
-    endfor
   endif
 
 endfunction
