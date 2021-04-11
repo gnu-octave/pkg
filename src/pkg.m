@@ -293,18 +293,41 @@
 
 function [local_packages, global_packages] = pkg (varargin)
 
-  params = parse_parameter (varargin{:});
-  varargin = setdiff (varargin, params.action);
+  if (nargin < 1)
+    varargin = {""};
+  endif
+  
+  ## valid actions in alphabetical order
+  available_actions = { ...
+    "build", ...
+    "describe", ...
+    "global_list", ...
+    "install", ...
+    "list", ...
+    "load", ...
+    "local_list", ...
+    "prefix", ...
+    "rebuild", ...
+    "test", ...
+    "uninstall", ...
+    "unload", ...
+    "update"};
+  help_str = "Call 'pkg' with one of the following actions:\n\n";
+  for i = 1:length (available_actions)
+    help_str = [help_str, "  pkg ", available_actions{i}, "\n"];
+  endfor
+  help_str = [help_str, "\nGet more help about a particular action.  ", ...
+    "For example:\n\n  pkg help install\n"];
 
-  ## Dispatch to function.
-  switch (params.action)
+  ## Dispatch to specialized function.
+  switch (varargin{1})
     case "list"
       if (nargout == 1)
-        local_packages = pkg_list (varargin{:});
+        local_packages = pkg_list (varargin{2:end});
       elseif (nargout > 1)
-        [local_packages, global_packages] = pkg_list (varargin{:});
+        [local_packages, global_packages] = pkg_list (varargin{2:end});
       else
-        pkg_list (varargin{:});
+        pkg_list (varargin{2:end});
       endif
 
     case "install"
@@ -379,30 +402,30 @@ function [local_packages, global_packages] = pkg (varargin)
       pkg_uninstall (files, deps, verbose, local_list, global_list, global_install);
 
     case "load"
-      pkg_load (varargin{:});
+      pkg_load (varargin{2:end});
 
     case "unload"
       pkg_unload (files, deps);
 
     case "prefix"
       if (nargout)
-        [local_packages, global_packages] = pkg_prefix (varargin{:});
+        [local_packages, global_packages] = pkg_prefix (varargin{2:end});
       else
-        pkg_prefix (varargin{:});
+        pkg_prefix (varargin{2:end});
       endif
 
     case "local_list"
       if (nargout)
-        local_packages = pkg_local_list (varargin{:});
+        local_packages = pkg_local_list (varargin{2:end});
       else
-        pkg_local_list (varargin{:});
+        pkg_local_list (varargin{2:end});
       endif
 
     case "global_list"
       if (nargout)
-        local_packages = pkg_global_list (varargin{:});
+        local_packages = pkg_global_list (varargin{2:end});
       else
-        pkg_global_list (varargin{:});
+        pkg_global_list (varargin{2:end});
       endif
 
     case "rebuild"
@@ -503,9 +526,14 @@ function [local_packages, global_packages] = pkg (varargin)
         ## Restore load path back to its original value before loading packages
         path (orig_path);
       end_unwind_protect
-
+    case "help"
+      if (nargin == 1)
+        disp (help_str);
+      else
+        printf ("\n%s\n\n", help (["pkg_", varargin{2}]));
+      endif
     otherwise
-      error ("pkg: invalid action.  See 'help pkg' for available actions");
+      error (["Wrong action.  ", help_str, "\n"]);
   endswitch
 
 endfunction

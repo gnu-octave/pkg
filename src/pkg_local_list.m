@@ -48,7 +48,11 @@ function out_file = pkg_local_list (varargin)
   ## Do not get removed from memory, even if "clear" is called.
   mlock ();
 
-  params = parse_parameter ("local_list", varargin{:});
+  params = parse_parameter ({}, varargin{:});
+  if (! isempty (params.error))
+    error ("pkg_local_list: %s\n\n%s\n\n", params.error, ...
+      help ("pkg_local_list"));
+  endif
 
   if (! isempty (params.flags) || (numel (params.other) > 1))
     print_usage ();

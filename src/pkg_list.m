@@ -24,63 +24,55 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {[@var{out1}, @var{out2}] =} pkg_list (@var{pkgname})
-## Show the list of currently installed packages.  For example,
+## @deftypefn {} {[@var{local_packages}, @var{global_packages}] =} pkg_list (@var{package_name})
+##
+## Show a list of currently installed packages.
 ##
 ## @example
-## pkg list
+## pkg_list ()
 ## @end example
 ##
 ## @noindent
-## will produce a short report with the package name, version, and installation
-## directory for each installed package.  Supply a package name to limit
-## reporting to a particular package.  For example:
+## produces a short report with the package name, version, and installation
+## directory for each installed package.
+##
+## Supply a package name to limit reporting to a particular package:
 ##
 ## @example
-## pkg list image
+## pkg_list ("image")
 ## @end example
 ##
-## If a single return argument is requested then @code{pkg} returns a cell
-## array where each element is a structure with information on a single
+## If a single return argument is requested then @code{pkg_list} returns a
+## cell array where each element is a structure with information on a single
 ## package.
 ##
 ## @example
-## installed_packages = pkg ("list")
+## all_packages = pkg_list ()
 ## @end example
 ##
 ## If two output arguments are requested @code{pkg} splits the list of
-## installed packages into those which were installed by the current user,
-## and those which were installed by the system administrator.
+## installed packages into locally and globally installed packages.
 ##
 ## @example
-## [user_packages, system_packages] = pkg ("list")
-## @end example
-##
-## The @qcode{"-forge"} option lists packages available at the Octave Forge
-## repository.  This requires an internet connection and the cURL library.
-## For example:
-##
-## @example
-## oct_forge_pkgs = pkg ("list", "-forge")
+## [local_packages, global_packages] = pkg_list ()
 ## @end example
 ## @end deftypefn
 
 function [out1, out2] = pkg_list (varargin)
 
-  params = parse_parameter ("list", varargin{:});
+  params = parse_parameter ({"-forge"}, varargin{:});
+  if (! isempty (params.error))
+    error ("pkg_list: %s\n\n%s\n\n", params.error, help ("pkg_list"));
+  endif
 
   ## FIXME: Legacy Octave Forge support.
-  if (params.flag.octave_forge)
+  if (params.flags.("-forge"))
     if (nargout)
       out1 = list_forge_packages ();
     else
       list_forge_packages ();
     endif
     return;
-  endif
-
-  if (! isempty (params.flags))
-    print_usage ();
   endif
 
   pkgname = params.other;

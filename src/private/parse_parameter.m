@@ -25,68 +25,57 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {@var{params} =} parse_parameter (varargin)
-## Parse and split parameters into action, flags, and other parameter.
+## Parse and split parameters into flags and other parameter.
+##
+## After running this function, @code{params.error} must be checked to be
+## empty.  If @code{params.error} is not empty, an error has occured and
+## the error message string is the content.
+##
+## @example
+## @group
+## >> params = parse_parameter ({"-nodeps"}, "install", "-nodeps", "image")
+## params =
+## 
+##   scalar structure containing the fields:
+##
+##     flags =
+##
+##       scalar structure containing the fields:
+##
+##         -nodeps = 1
+##
+##     other =
+##     {
+##       [1,1] = image
+##     }
+##
+##     error =
+## @end group
+## @end example
 ## @end deftypefn
 
-function params = parse_parameter (varargin)
+function params = parse_parameter (accepted_flags, varargin)
 
-  ## valid actions in alphabetical order
-  available_actions = {"build", "describe", "global_list", "install", ...
-                       "list", "load", "local_list", "prefix", "rebuild", ...
-                       "test", "uninstall", "unload", "update"};
+  if (! iscell (accepted_flags))
+    error (["pkg > parse_parameter: 'accepted_flags' must be a cell array " ...
+      "of strings."]);
+  endif
 
-  params.action = "";
-  params.flags = {};
-  params.flag.nodeps = false;
-  params.flag.verbose = false;
-  params.flag.local = false;
-  params.flag.global = false;
-  params.flag.octave_forge = false;
+  params.flags = [];
+  for i = 1:length (accepted_flags)
+    params.flags.(accepted_flags{i}) = false;
+  endfor
   params.other = {};
+  params.error = "";
 
   for i = 1:numel (varargin)
     switch (varargin{i})
-      case available_actions
-        if (! isempty (params.action))
-          error ("pkg: more than one action specified");
+      case accepted_flags
+        if (params.flags.(varargin{i}))
+          params.error = ["multiple occurence of flag '", varargin{i}, "'"];
+          return;
         endif
-        params.action = varargin{i};
-      otherwise
-        if (! ischar (varargin{i}))
-          error ("pkg: input must be strings");
-        endif
-        if (varargin{i}(1) == '-')
-          params.flags{end+1} = varargin{i};
-        else
-          params.other{end+1} = varargin{i};
-        endif
-    endswitch
-  endfor
-  
-  if (numel (params.flags) > numel (unique (params.flags)))
-    error ("pkg: duplicate option found");
-  endif
-  
-  for i = 1:numel (params.flags)
-    switch (params.flags{i})
-      case "-nodeps"
-        params.flag.nodeps = true;
-      case "-verbose"
-        params.flag.verbose = true;
-      case "-local"
-        if (params.flag.global)
-          error ("pkg: contradicting flags '-local' and '-global'");
-        endif
-        params.flag.local = true;
-      case "-global"
-        if (params.flag.local)
-          error ("pkg: contradicting flags '-local' and '-global'");
-        endif
-        params.flag.global = true;
-      case "-forge"
-        warning ("Octave:deprecated-option", ...
-                 "pkg: the '-forge' option is no longer required.");
-        params.flag.octave_forge = true;
+        params.flags.(varargin{i}) = true;
       case "-noauto"
         warning ("Octave:deprecated-option", ...
                  ["pkg: autoload is no longer supported.  The -noauto ", ...
@@ -96,8 +85,17 @@ function params = parse_parameter (varargin)
                  ["pkg: autoload is no longer supported.  Add a ", ...
                   "'pkg load ...' command to the Octave startup file ", ...
                   "instead."]);
-       otherwise
-         error ("pkg: unknown flag '%s'", params.flags{i});
+      otherwise
+        if (! ischar (varargin{i}))
+          params.error = "input must be strings";
+          return;
+        endif
+        if (varargin{i}(1) == '-')
+          params.error = ["flag '", varargin{i}, "' not supported"];
+          return;
+        else
+          params.other{end+1} = varargin{i};
+        endif
     endswitch
   endfor
 

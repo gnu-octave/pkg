@@ -55,10 +55,12 @@
 
 function pkg_load (varargin)
 
-  params = parse_parameter ("list", varargin{:});
+  params = parse_parameter ({"-nodeps"}, varargin{:});
+  if (! isempty (params.error))
+    error ("pkg_load: %s\n\n%s\n\n", params.error, help ("pkg_load"));
+  endif
 
-  if ((numel (params.flags) > 1) || isempty (params.other) ...
-      || (! isempty (params.flags) && ! params.flag.nodeps))
+  if (isempty (params.other))
     print_usage ();
   endif
 
@@ -82,7 +84,7 @@ function pkg_load (varargin)
   endfor
 
   ## Load the packages, but take care of the ordering of dependencies.
-  load_packages_and_dependencies (idx, ! params.flag.nodeps, installed_pkgs_lst, true);
+  load_packages_and_dependencies (idx, ! params.flags.("-nodeps"), installed_pkgs_lst, true);
 
 endfunction
 

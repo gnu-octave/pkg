@@ -76,12 +76,14 @@ function [prefix, archprefix] = pkg_prefix (varargin)
   ## Do not get removed from memory, even if "clear" is called.
   mlock ();
 
-  params = parse_parameter (varargin{:});
+  params = parse_parameter ({"-global", "-local"}, varargin{:});
+  if (! isempty (params.error))
+    error ("pkg_prefix: %s\n\n%s\n\n", params.error, help ("pkg_prefix"));
+  endif
 
-  if ((nargin > 2) || (numel (params.flags) > 1) ...
-      || (! isempty (params.flags) && ! isempty (params.other)) ...
-      || (! isempty (params.flags) ...
-          && ! any (strcmp ("-global", {"-global", "-local"}))))
+  if ((nargin > 2) || (params.flags.("-local") && params.flags.("-global")) ...
+      || ((params.flags.("-local") || params.flags.("-global"))
+          && ! isempty (params.other)))
     print_usage ();
   endif
 
@@ -105,8 +107,8 @@ function [prefix, archprefix] = pkg_prefix (varargin)
     if (! isempty (user_archprefix))
       archprefix = user_archprefix;
     endif
-  elseif (params.flag.global ...
-          || (! params.flag.local && opts.has_elevated_rights))
+  elseif (params.flags.("-global") ...
+          || (! params.flags.("-local") && opts.has_elevated_rights))
     prefix = global_prefix;
     archprefix = global_archprefix;
   else
