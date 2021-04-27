@@ -25,6 +25,20 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {} pkg_build (@var{builddir}, @var{tarballs}, @var{verbose})
+## Build a binary form of a package or packages.  The binary file produced
+## will itself be an Octave package that can be installed normally with
+## @code{pkg}.  The form of the command to build a binary package is
+##
+## @example
+## pkg build builddir image-1.0.0.tar.gz @dots{}
+## @end example
+##
+## @noindent
+## where @code{builddir} is the name of a directory where the temporary
+## installation will be produced and the binary packages will be found.
+## The options @option{-verbose} and @option{-nodeps} are respected, while
+## all other options are ignored.
+##
 ## Prepare binary packages from Octave source packages.
 ##
 ## Boils down to (for each in @var{tarballs}):

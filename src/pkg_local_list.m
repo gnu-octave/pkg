@@ -54,12 +54,12 @@ function out_file = pkg_local_list (varargin)
       help ("pkg_local_list"));
   endif
 
-  if (! isempty (params.flags) || (numel (params.other) > 1))
+  if (! isempty (params.flags) || (numel (params.in) > 1))
     print_usage ();
   endif
 
-  if (numel (params.other) == 1)
-    list_file = params.other{1};
+  if (numel (params.in) == 1)
+    list_file = params.in{1};
     if (! ischar (list_file))
       error ("pkg: invalid local_list file");
     endif
@@ -75,7 +75,7 @@ function out_file = pkg_local_list (varargin)
     local_list = canonicalize_file_name (list_file);
   endif
 
-  if ((nargout == 0) && isempty (params.other))
+  if ((nargout == 0) && isempty (params.in))
     disp (local_list);
   else
     out_file = local_list;

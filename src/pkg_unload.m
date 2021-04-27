@@ -25,13 +25,26 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {} pkg_unload (@var{files}, @var{handle_deps})
-## Undocumented internal function.
+## Remove a packages from the Octave load path.
+##
+## After unloading a package it is no longer possible to use any functions
+## provided by the package.  Trying to unload a package that other loaded
+## packages still depend on will result in an error; no packages will be
+## unloaded in this case.
+##
+## A package can be forcibly unloaded with the @option{-nodeps} flag.
+## However, the functionality of dependent packages will likely be affected.
 ## @end deftypefn
 
-function pkg_unload (files, handle_deps)
+function pkg_unload (varargin)
 
-  if (isempty (files))
-    error ("pkg: unload action requires at least one package name");
+  params = parse_parameter ({"-nodeps"}, varargin{:});
+  if (! isempty (params.error))
+    error ("pkg_unload: %s\n\n%s\n\n", params.error, help ("pkg_unload"));
+  endif
+
+  if (isempty (params.in))
+    error ("pkg_unload: at least one package name is required");
   endif
 
   installed_pkgs_lst = pkg_list ();
@@ -49,8 +62,8 @@ function pkg_unload (files, handle_deps)
   ## Unload package_name1 ...
   dirs = {};
   desc = {};
-  idx = find (ismember (pnames, files));
-  missing_pkgs = setdiff (files, pnames(idx));
+  idx = find (ismember (pnames, params.in));
+  missing_pkgs = setdiff (params.in, pnames(idx));
   if (! isempty (missing_pkgs))
     missing_pkgs = strjoin (missing_pkgs, " & ");
     error ("pkg: package(s): %s not installed", missing_pkgs);
@@ -58,7 +71,7 @@ function pkg_unload (files, handle_deps)
   dirs = pdirs(idx);
   desc = installed_pkgs_lst(idx);
 
-  if (handle_deps)
+  if (! params.flags.("-nodeps"))
     ## Check for loaded inverse dependencies of packages to be unloaded.
     ## First create a list of loaded packages.
     jdx = find (cellfun (@(x) x.loaded, installed_pkgs_lst));
@@ -104,9 +117,9 @@ function pkg_unload (files, handle_deps)
     if (any (idx))
       rmpath (d);
       ## FIXME: We should also check if we need to remove items from EXEC_PATH.
-      if (isguirunning)
-        __event_manager_update_gui_lexer__;
-      endif
+      ##if (isguirunning)
+      ##  __event_manager_update_gui_lexer__;  Octave 7
+      ##endif
     endif
   endfor
 

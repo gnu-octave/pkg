@@ -60,7 +60,7 @@
 ## @end example
 ## @end deftypefn
 
-function [prefix, archprefix] = pkg_prefix (varargin)
+function [return_prefix, return_archprefix] = pkg_prefix (varargin)
 
   ## Default paths.
   persistent local_prefix = tilde_expand (fullfile ("~", "octave"));
@@ -83,26 +83,27 @@ function [prefix, archprefix] = pkg_prefix (varargin)
 
   if ((nargin > 2) || (params.flags.("-local") && params.flags.("-global")) ...
       || ((params.flags.("-local") || params.flags.("-global"))
-          && ! isempty (params.other)))
+          && ! isempty (params.in)))
     print_usage ();
   endif
 
   ## Set user prefix if requested.
-  if (! isempty (params.other))
-    if ((numel (params.other) > 2) || ! ischar (params.other{1}) ...
-        || ((numel (params.other) == 2) && (! ischar (params.other{2}))))
+  if (! isempty (params.in))
+    if ((numel (params.in) > 2) || ! ischar (params.in{1}) ...
+        || ((numel (params.in) == 2) && (! ischar (params.in{2}))))
       error ("pkg: please provide one or two directory path strings")
     endif
-    user_prefix = make_absolute_filename (tilde_expand (params.other{1}));
-    if (numel (params.other) == 2)
-      user_archprefix = make_absolute_filename (tilde_expand (params.other{2}));
+    user_prefix = make_absolute_filename (tilde_expand (params.in{1}));
+    if (numel (params.in) == 2)
+      user_archprefix = make_absolute_filename (tilde_expand (params.in{2}));
     endif
   endif
 
   opts = get_system_information ();
 
   ## Determine the used prefix and archprefix.
-  if (isempty (params.flags) && ! isempty (user_prefix))
+  if (! params.flags.("-global") && ! params.flags.("-local") ...
+      && ! isempty (user_prefix))
     prefix = archprefix = user_prefix;
     if (! isempty (user_archprefix))
       archprefix = user_archprefix;
@@ -115,7 +116,10 @@ function [prefix, archprefix] = pkg_prefix (varargin)
     prefix = archprefix = local_prefix;
   endif
 
-  if ((nargout == 0) && isempty (params.other))
+  if (nargout >= 1)
+    return_prefix = prefix;
+    return_archprefix = archprefix;
+  elseif (isempty (params.in))
     printf ("Installation prefix:             %s\n", prefix);
     printf ("Architecture dependent prefix:   %s\n", archprefix);
   endif

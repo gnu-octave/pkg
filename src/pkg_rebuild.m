@@ -25,10 +25,40 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {@var{descriptions} =} pkg_rebuild (@var{prefix}, @var{archprefix}, @var{files}, @var{verbose})
-## Undocumented internal function.
+## Rebuild the package database from the installed directories.  This can
+## be used in cases where the package database has been corrupted.
 ## @end deftypefn
 
-function descriptions = pkg_rebuild (prefix, archprefix, files, verbose)
+function pkg_rebuild (varargin)
+
+  if (global_install)
+    global_packages = pkg_rebuild_internal (prefix, archprefix, files, verbose);
+    global_packages = save_order (global_packages);
+    if (ispc)
+      ## On Windows ensure LFN paths are saved rather than 8.3 style paths
+      global_packages = standardize_paths (global_packages);
+    endif
+    global_packages = make_rel_paths (global_packages);
+    save (global_list, "global_packages");
+    if (nargout)
+      local_packages = global_packages;
+    endif
+  else
+    local_packages = pkg_rebuild_internal (prefix, archprefix, files, verbose);
+    local_packages = save_order (local_packages);
+    if (ispc)
+      local_packages = standardize_paths (local_packages);
+    endif
+    save (local_list, "local_packages");
+    if (! nargout)
+      clear ("local_packages");
+    endif
+  endif
+
+endfunction
+
+
+function descriptions = pkg_rebuild_internal (prefix, archprefix, files, verbose)
 
   if (isempty (files))
     if (! exist (prefix, "dir"))

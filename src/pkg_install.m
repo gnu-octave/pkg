@@ -25,11 +25,141 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {} pkg_install (@var{files}, @var{handle_deps}, @var{prefix}, @var{archprefix}, @var{verbose}, @var{local_list}, @var{global_list}, @var{global_install})
-## Undocumented internal function.
+## Install named packages.  For example,
+##
+## @example
+## pkg install image-1.0.0.tar.gz
+## @end example
+##
+## @noindent
+## installs the package found in the file @file{image-1.0.0.tar.gz}.  The
+## file containing the package can be a URL, e.g.,
+##
+## @example
+## pkg install 'http://somewebsite.org/image-1.0.0.tar.gz'
+## @end example
+##
+## @noindent
+## installs the package found in the given URL@.  This
+## requires an internet connection and the cURL library.
+##
+## @noindent
+## @emph{Security risk}: no verification of the package is performed
+## before the installation.  It has the same security issues as manually
+## downloading the package from the given URL and installing it.
+##
+## @noindent
+## @emph{No support}: the GNU Octave community is not responsible for
+## packages installed from foreign sites.  For support or for
+## reporting bugs you need to contact the maintainers of the installed
+## package directly (see the @file{DESCRIPTION} file of the package)
+##
+## The @var{option} variable can contain options that affect the manner
+## in which a package is installed.  These options can be one or more of
+##
+## @table @code
+## @item -nodeps
+## The package manager will disable dependency checking.  With this option it
+## is possible to install a package even when it depends on another package
+## which is not installed on the system.  @strong{Use this option with care.}
+##
+## @item -local
+## A local installation (package available only to current user) is forced,
+## even if the user has system privileges.
+##
+## @item -global
+## A global installation (package available to all users) is forced, even if
+## the user doesn't normally have system privileges.
+##
+## @item -forge
+## Install a package directly from the Octave Forge repository.  This
+## requires an internet connection and the cURL library.
+##
+## @emph{Security risk}: no verification of the package is performed
+## before the installation.  There are no signature for packages, or
+## checksums to confirm the correct file was downloaded.  It has the
+## same security issues as manually downloading the package from the
+## Octave Forge repository and installing it.
+##
+## @item -verbose
+## The package manager will print the output of all commands as
+## they are performed.
+## @end table
 ## @end deftypefn
 
-function pkg_install (files, handle_deps, prefix, archprefix, verbose,
-                      local_list, global_list, global_install)
+function pkg_install (files)
+  if (isempty (files))
+    error ("pkg: install action requires at least one filename");
+  endif
+
+  local_files = {};
+  tmp_dir = tempname ();
+  unwind_protect
+
+    if (octave_forge)
+      [urls, local_files] = cellfun ("get_forge_download", files,
+                                     "uniformoutput", false);
+      [files, succ] = cellfun ("urlwrite", urls, local_files,
+                               "uniformoutput", false);
+      succ = [succ{:}];
+      if (! all (succ))
+        i = find (! succ, 1);
+        error ("pkg: could not download file %s from URL %s",
+               local_files{i}, urls{i});
+      endif
+    else
+      ## If files do not exist, maybe they are not local files.
+      ## Try to download them.
+      not_local_files = cellfun (@(x) isempty (glob (x)), files);
+      if (any (not_local_files))
+        [success, msg] = mkdir (tmp_dir);
+        if (success != 1)
+          error ("pkg: failed to create temporary directory: %s", msg);
+        endif
+
+        for file = files(not_local_files)
+          file = file{1};
+          [~, fname, fext] = fileparts (file);
+          tmp_file = fullfile (tmp_dir, [fname fext]);
+          local_files{end+1} = tmp_file;
+          looks_like_url = regexp (file, '^\w+://');
+          if (looks_like_url)
+            [~, success, msg] = urlwrite (file, local_files{end});
+            if (success != 1)
+              error ("pkg: failed downloading '%s': %s", file, msg);
+            endif
+          else
+            looks_like_pkg_name = regexp (file, '^[\w-]+$');
+            if (looks_like_pkg_name)
+              error (["pkg: file not found: %s.\n" ...
+                      "This looks like an Octave Forge package name." ...
+                      "  Did you mean:\n" ...
+                      "       pkg install -forge %s"], ...
+                     file, file);
+            else
+              error ("pkg: file not found: %s", file);
+            endif
+          endif
+          files{strcmp (files, file)} = local_files{end};
+
+        endfor
+      endif
+    endif
+    pkg_install_interal (files, deps, prefix, archprefix, verbose, local_list,
+                         global_list, global_install);
+
+  unwind_protect_cleanup
+    [~] = cellfun ("unlink", local_files);
+    if (exist (tmp_dir, "file"))
+      [~] = rmdir (tmp_dir, "s");
+    endif
+  end_unwind_protect
+ 
+endfunction
+
+
+function pkg_install_interal (files, handle_deps, prefix, archprefix, verbose,
+                              local_list, global_list, global_install)
 
   ## Check that the directory in prefix exist.  If it doesn't: create it!
   if (! isfolder (prefix))
@@ -840,5 +970,80 @@ function generate_lookfor_cache (desc)
   for i = 1 : length (dirs)
     doc_cache_create (fullfile (dirs{i}, "doc-cache"), dirs{i});
   endfor
+
+endfunction
+
+
+function [url, local_file] = get_forge_download (name)
+  [ver, url] = get_forge_pkg (name);
+  local_file = tempname (tempdir (), [name "-" ver "-"]);
+  local_file = [local_file ".tar.gz"];
+endfunction
+
+
+function [ver, url] = get_forge_pkg (name)
+
+## Try to discover the current version of an Octave Forge package from the web,
+## using a working internet connection and the urlread function.
+## If two output arguments are requested, also return an address from which
+## to download the file.
+
+  ## Verify that name is valid.
+  if (! (ischar (name) && rows (name) == 1 && ndims (name) == 2))
+    error ("get_forge_pkg: package NAME must be a string");
+  elseif (! all (isalnum (name) | name == "-" | name == "." | name == "_"))
+    error ("get_forge_pkg: invalid package NAME: %s", name);
+  endif
+
+  name = tolower (name);
+
+  ## Try to download package's index page.
+  [html, succ] = urlread (sprintf ("https://packages.octave.org/%s/index.html",
+                                   name));
+  if (succ)
+    ## Remove blanks for simpler matching.
+    html(isspace (html)) = [];
+    ## Good.  Let's grep for the version.
+    pat = "<tdclass=""package_table"">PackageVersion:</td><td>([\\d.]*)</td>";
+    t = regexp (html, pat, "tokens");
+    if (isempty (t) || isempty (t{1}))
+      error ("get_forge_pkg: could not read version number from package's page");
+    else
+      ver = t{1}{1};
+      if (nargout > 1)
+        ## Build download string.
+        pkg_file = sprintf ("%s-%s.tar.gz", name, ver);
+        url = ["https://packages.octave.org/download/" pkg_file];
+        ## Verify that the package string exists on the page.
+        if (isempty (strfind (html, pkg_file)))
+          warning ("get_forge_pkg: download URL not verified");
+        endif
+      endif
+    endif
+  else
+    ## Try get the list of all packages.
+    [html, succ] = urlread ("https://packages.octave.org/list_packages.php");
+    if (! succ)
+      error ("get_forge_pkg: could not read URL, please verify internet connection");
+    endif
+    t = strsplit (html);
+    if (any (strcmp (t, name)))
+      error ("get_forge_pkg: package NAME exists, but index page not available");
+    endif
+    ## Try a simplistic method to determine similar names.
+    function d = fdist (x)
+      len1 = length (name);
+      len2 = length (x);
+      if (len1 <= len2)
+        d = sum (abs (name(1:len1) - x(1:len1))) + sum (x(len1+1:end));
+      else
+        d = sum (abs (name(1:len2) - x(1:len2))) + sum (name(len2+1:end));
+      endif
+    endfunction
+    dist = cellfun ("fdist", t);
+    [~, i] = min (dist);
+    error ("get_forge_pkg: package not found: ""%s"".  Maybe you meant ""%s?""",
+           name, t{i});
+  endif
 
 endfunction

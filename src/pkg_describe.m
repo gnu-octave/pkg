@@ -25,7 +25,31 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {[@var{pkg_desc_list}, @var{flag}] =} pkg_describe (@var{pkgnames}, @var{verbose})
-## Undocumented internal function.
+## Show a short description of installed packages.
+##
+## With the option @qcode{"-verbose"} also list functions provided by the
+## package.
+##
+## If one output is requested a cell of structure containing the
+## description and list of functions of each package is returned as
+## output rather than printed on screen:
+##
+## @example
+## desc = pkg_describe ("secs1d", "image")
+## @end example
+##
+## @noindent
+## If any of the requested packages is not installed, @code{pkg} returns an
+## error, unless a second output is requested:
+##
+## @example
+## [desc, flag] = pkg ("describe", "secs1d", "image")
+## @end example
+##
+## @noindent
+## @var{flag} will take one of the values @qcode{"Not installed"},
+## @qcode{"Loaded"}, or
+## @qcode{"Not loaded"} for each of the named packages.
 ## @end deftypefn
 
 function [pkg_desc_list, flag] = pkg_describe (pkgnames, verbose)

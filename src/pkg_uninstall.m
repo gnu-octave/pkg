@@ -25,7 +25,16 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {} pkg_uninstall (@var{pkgnames}, @var{handle_deps}, @var{verbose}, @var{local_list}, @var{global_list}, @var{global_install})
-## Undocumented internal function.
+## Uninstall a package.  For example,
+##
+## @example
+## pkg uninstall image
+## @end example
+##
+## @noindent
+## removes the @code{image} package from the system.  If another installed
+## package depends on the @code{image} package an error will be issued.
+## The package can be uninstalled anyway by using the @option{-nodeps} option.
 ## @end deftypefn
 
 function pkg_uninstall (pkgnames, handle_deps, verbose, local_list,

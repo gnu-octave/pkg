@@ -75,8 +75,6 @@ function [out1, out2] = pkg_list (varargin)
     return;
   endif
 
-  pkgname = params.other;
-
   ## Get the list of installed packages.
   try
     local_packages = load (pkg_local_list ()).local_packages;
@@ -104,10 +102,10 @@ function [out1, out2] = pkg_list (varargin)
   installed_pkgs_lst = installed_pkgs_lst(idx);
 
   ## Check whether info on a particular package was requested
-  if (! isempty (pkgname))
+  if (! isempty (params.in))
     idx = [];
-    for i = 1 : numel (pkgname)
-      idx = [idx, find(strcmp (pkgname{i}, installed_names))];
+    for i = 1 : numel (params.in)
+      idx = [idx, find(strcmp (params.in{i}, installed_names))];
     endfor
     if (isempty (idx))
       installed_names = {};
@@ -153,10 +151,10 @@ function [out1, out2] = pkg_list (varargin)
     ## Don't return anything, instead we'll print something.
     num_packages = numel (installed_pkgs_lst);
     if (num_packages == 0)
-      if (isempty (pkgname))
+      if (isempty (params.in))
         printf ("no packages installed.\n");
       else
-        printf ("package %s is not installed.\n", pkgname{1});
+        printf ("package %s is not installed.\n", params.in{1});
       endif
       return;
     endif

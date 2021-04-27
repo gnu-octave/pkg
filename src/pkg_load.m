@@ -60,7 +60,7 @@ function pkg_load (varargin)
     error ("pkg_load: %s\n\n%s\n\n", params.error, help ("pkg_load"));
   endif
 
-  if (isempty (params.other))
+  if (isempty (params.in))
     print_usage ();
   endif
 
@@ -75,10 +75,10 @@ function pkg_load (varargin)
   endfor
 
   idx = [];
-  for i = 1:length (params.other)
-    idx2 = find (strcmp (pnames, params.other{i}));
+  for i = 1:length (params.in)
+    idx2 = find (strcmp (pnames, params.in{i}));
     if (! any (idx2))
-      error ("package %s is not installed", params.other{i});
+      error ("package %s is not installed", params.in{i});
     endif
     idx(end + 1) = idx2;
   endfor

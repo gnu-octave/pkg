@@ -33,7 +33,7 @@
 ##
 ## @example
 ## @group
-## >> params = parse_parameter ({"-nodeps"}, "install", "-nodeps", "image")
+## >> params = parse_parameter ({"-nodeps"}, "-nodeps", "image")
 ## params =
 ## 
 ##   scalar structure containing the fields:
@@ -44,7 +44,7 @@
 ##
 ##         -nodeps = 1
 ##
-##     other =
+##     in =
 ##     {
 ##       [1,1] = image
 ##     }
@@ -65,7 +65,7 @@ function params = parse_parameter (accepted_flags, varargin)
   for i = 1:length (accepted_flags)
     params.flags.(accepted_flags{i}) = false;
   endfor
-  params.other = {};
+  params.in = {};
   params.error = "";
 
   for i = 1:numel (varargin)
@@ -94,7 +94,7 @@ function params = parse_parameter (accepted_flags, varargin)
           params.error = ["flag '", varargin{i}, "' not supported"];
           return;
         else
-          params.other{end+1} = varargin{i};
+          params.in{end+1} = varargin{i};
         endif
     endswitch
   endfor
