@@ -60,7 +60,7 @@
 ## @end example
 ## @end deftypefn
 
-function [return_prefix, return_archprefix] = pkg_prefix (varargin)
+function [return_prefix, return_archprefix] = legacy_pkg_prefix (varargin)
 
   ## Default paths.
   persistent local_prefix = tilde_expand (fullfile ("~", "octave"));

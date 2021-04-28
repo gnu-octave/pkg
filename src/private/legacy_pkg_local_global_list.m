@@ -24,62 +24,51 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{list_file} =} pkg_global_list (@var{list_file})
-## Get or set the file containing the list of globally installed packages.
+## @deftypefn {} {@var{list_file} =} legacy_pkg_local_list (@var{list_file})
+## Get or set the file containing the list of locally installed packages.
 ##
-## Globally installed packages are available to all users.
+## Locally installed packages are only available to the current user.
 ## For example getting
 ##
 ## @example
-## list_file = pkg_global_list ()
+## @group
+## list_file = pkg ("local_list")
+## list_file = pkg ("global_list")
+## @end group
 ## @end example
 ##
 ## and setting the file
 ##
 ## @example
-## pkg_global_list ("/usr/share/octave/octave_packages")
+## @group
+## pkg local_list  "~/.octave_packages"
+## pkg global_list "~/.octave_packages"
+## @end group
 ## @end example
 ## @end deftypefn
 
-function out_file = pkg_global_list (varargin)
+function out_file = legacy_pkg_local_global_list (scope, list_file)
 
-  persistent global_list = fullfile (OCTAVE_HOME (), "share", "octave",
-                                     "octave_packages");
-
-  ## Do not get removed from memory, even if "clear" is called.
-  mlock ();
-
-  params = parse_parameter ({}, varargin{:});
-  if (! isempty (params.error))
-    error ("pkg_global_list: %s\n\n%s\n\n", params.error, ...
-      help ("pkg_global_list"));
-  endif
-
-  if (! isempty (params.flags) || (numel (params.in) > 1))
+  if ((nargin < 1) || (nargin > 2) ...
+      || ! any (strcmp (scope, {"local", "global"})))
     print_usage ();
   endif
 
-  if (numel (params.in) == 1)
-    list_file = params.in{1};
+  config = pkg_config ();
+
+  ## Setting call form.
+  if (nargin == 2)
     if (! ischar (list_file))
-      error ("pkg: invalid global_list file");
+      error ("pkg: invalid list file");
     endif
-    list_file = tilde_expand (list_file);
-    if (! exist (list_file, "file"))
-      try
-        ## Force file to be created
-        fclose (fopen (list_file, "wt"));
-      catch
-        error ("pkg: cannot create file %s", list_file);
-      end_try_catch
-    endif
-    global_list = canonicalize_file_name (list_file);
+    config.(scope).list = canonicalize_file_name (tilde_expand (list_file));
+    config = pkg_config (config);
   endif
 
   if ((nargout == 0) && isempty (params.in))
-    disp (global_list);
+    disp (config.(scope).list);
   else
-    out_file = global_list;
+    out_file = config.(scope).list;
   endif
 
 endfunction

@@ -108,14 +108,8 @@
 ## @item update
 ## Check all installed packages for newer versions.
 ##
-## @item prefix
-## Get or set the installation prefix directory.
-##
-## @item local_list
-## Get or set the file containing the list of locally installed packages.
-##
-## @item global_list
-## Get or set the file containing the list of globally installed packages.
+## @item config
+## Configure the pkg tool.
 ##
 ## @item build
 ## Build a binary form of a package or packages.
@@ -139,18 +133,18 @@ function varargout = pkg (varargin)
   ## Valid actions in alphabetical order.
   available_actions = { ...
     "build", ...
+    "config", ...
     "describe", ...
-    "global_list", ...
     "install", ...
     "list", ...
     "load", ...
-    "local_list", ...
-    "prefix", ...
     "rebuild", ...
     "test", ...
     "uninstall", ...
     "unload", ...
     "update"};
+  legacy_actions = { ...
+    "prefix"};
 
   ## Create help string.
   help_str = "Call 'pkg' with one of the following actions:\n\n";
@@ -166,6 +160,7 @@ function varargout = pkg (varargin)
     case available_actions
       fcn = str2func (["pkg_", varargin{1}]);
       [varargout{1:nargout}] = fcn (varargin{2:end});
+
     case "help"
       if (nargin == 1)
         disp (help_str);
@@ -174,6 +169,17 @@ function varargout = pkg (varargin)
       else
         error (["unsupported action '%s'.  ", help_str, "\n"], varargin{2});
       endif
+
+    ## Legacy actions
+    case "prefix"
+      [varargout{1:nargout}] = legacy_pkg_prefix (varargin{2:end});
+    case "global_list"
+      [varargout{1:nargout}] = legacy_pkg_local_global_list ("global",
+                                                             varargin{2:end});
+    case "local_list"
+      [varargout{1:nargout}] = legacy_pkg_local_global_list ("local",
+                                                             varargin{2:end});
+
     otherwise
       error (["unsupported action '%s'.  ", help_str, "\n"], varargin{1});
   endswitch
