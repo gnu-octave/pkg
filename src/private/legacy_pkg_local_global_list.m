@@ -24,11 +24,14 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{list_file} =} legacy_pkg_local_list (@var{list_file})
-## Get or set the file containing the list of locally installed packages.
+## @deftypefn {} {@var{list_file} =} legacy_pkg_local_global_list (@var{scope}, @var{list_file})
+## Get or set the file containing the list of (locally/globally) packages.
 ##
-## Locally installed packages are only available to the current user.
-## For example getting
+## This is a legacy helper function to serve old pkg calls like below.
+## The information "local_list" or "global_list" is given by the @var{scope}
+## argument, one of "local" or "global".
+##
+## Getting the list file:
 ##
 ## @example
 ## @group
@@ -37,7 +40,7 @@
 ## @end group
 ## @end example
 ##
-## and setting the file
+## and setting the list file:
 ##
 ## @example
 ## @group
@@ -54,21 +57,21 @@ function out_file = legacy_pkg_local_global_list (scope, list_file)
     print_usage ();
   endif
 
-  config = pkg_config ();
+  conf = pkg_config ();
 
-  ## Setting call form.
+  ## If setting of the list file is requested.
   if (nargin == 2)
     if (! ischar (list_file))
       error ("pkg: invalid list file");
     endif
-    config.(scope).list = canonicalize_file_name (tilde_expand (list_file));
-    config = pkg_config (config);
+    conf.(scope).list = canonicalize_file_name (tilde_expand (list_file));
+    conf = pkg_config (conf);
   endif
 
-  if ((nargout == 0) && isempty (params.in))
-    disp (config.(scope).list);
+  if ((nargout == 0) && isempty (list_file))
+    disp (conf.(scope).list);
   else
-    out_file = config.(scope).list;
+    out_file = conf.(scope).list;
   endif
 
 endfunction

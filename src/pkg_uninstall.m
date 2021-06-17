@@ -24,7 +24,7 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_uninstall (@var{pkgnames}, @var{handle_deps}, @var{verbose}, @var{local_list}, @var{global_list}, @var{global_install})
+## @deftypefn {} {} pkg_uninstall (@var{params.in})
 ## Uninstall a package.  For example,
 ##
 ## @example
@@ -37,16 +37,22 @@
 ## The package can be uninstalled anyway by using the @option{-nodeps} option.
 ## @end deftypefn
 
-function pkg_uninstall (pkgnames, handle_deps, verbose, local_list,
-                        global_list, global_install)
+function pkg_uninstall (varargin)
 
-  if (isempty (pkgnames))
-    error ("pkg: uninstall action requires at least one package name");
+  params = parse_parameter ({"-global", "-nodeps"}, varargin{:});
+  if (! isempty (params.error))
+    error ("pkg_uninstall: %s\n\n%s\n\n", params.error, help ("pkg_uninstall"));
   endif
+
+  if (isempty (params.in))
+    error ("pkg_uninstall: at least one package name is required");
+  endif
+
+  conf = pkg_config ();
 
   ## Get the list of installed packages.
   [local_packages, global_packages] = pkg_list ();
-  if (global_install)
+  if (params.flags.("-global"))
     installed_pkgs_lst = {local_packages{:}, global_packages{:}};
   else
     installed_pkgs_lst = local_packages;
@@ -56,14 +62,14 @@ function pkg_uninstall (pkgnames, handle_deps, verbose, local_list,
   delete_idx = [];
   for i = 1:num_packages
     cur_name = installed_pkgs_lst{i}.name;
-    if (any (strcmp (cur_name, pkgnames)))
+    if (any (strcmp (cur_name, params.in)))
       delete_idx(end+1) = i;
     endif
   endfor
 
   ## Are all the packages that should be uninstalled already installed?
-  if (length (delete_idx) != length (pkgnames))
-    if (global_install)
+  if (length (delete_idx) != length (params.in))
+    if (params.flags.("-global"))
       ## Try again for a locally installed package.
       installed_pkgs_lst = local_packages;
 
@@ -71,11 +77,11 @@ function pkg_uninstall (pkgnames, handle_deps, verbose, local_list,
       delete_idx = [];
       for i = 1:num_packages
         cur_name = installed_pkgs_lst{i}.name;
-        if (any (strcmp (cur_name, pkgnames)))
+        if (any (strcmp (cur_name, params.in)))
           delete_idx(end+1) = i;
         endif
       endfor
-      if (length (delete_idx) != length (pkgnames))
+      if (length (delete_idx) != length (params.in))
         ## FIXME: We should have a better error message.
         warning ("some of the packages you want to uninstall are not installed");
       endif
@@ -95,7 +101,7 @@ function pkg_uninstall (pkgnames, handle_deps, verbose, local_list,
     to_delete_packages = {installed_pkgs_lst{delete_idx}};
 
     ## Check dependencies.
-    if (handle_deps)
+    if (! params.flags.("-nodeps"))
       error_text = "";
       for i = 1:length (remaining_packages)
         desc = remaining_packages{i};
@@ -117,9 +123,10 @@ function pkg_uninstall (pkgnames, handle_deps, verbose, local_list,
     endif
 
     ## Delete the directories containing the packages.
+    confirm_recursive_rmdir (false, "local");
     for i = delete_idx
       desc = installed_pkgs_lst{i};
-      desc.archdir = fullfile (desc.archprefix, getarch ());
+      desc.archdir = fullfile (desc.archprefix, conf.arch);
       ## If an 'on_uninstall.m' exist, call it!
       if (exist (fullfile (desc.dir, "packinfo", "on_uninstall.m"), "file"))
         wd = pwd ();
@@ -157,9 +164,9 @@ function pkg_uninstall (pkgnames, handle_deps, verbose, local_list,
     endfor
 
     ## Write a new ~/.octave_packages.
-    if (global_install)
+    if (params.flags.("-global"))
       if (numel (remaining_packages) == 0)
-        [~] = unlink (global_list);
+        [~] = unlink (conf.global.list);
       else
         global_packages = save_order (remaining_packages);
         if (ispc)
@@ -167,17 +174,17 @@ function pkg_uninstall (pkgnames, handle_deps, verbose, local_list,
           global_packages = standardize_paths (global_packages);
         endif
         global_packages = make_rel_paths (global_packages);
-        save (global_list, "global_packages");
+        save (conf.global.list, "global_packages");
       endif
     else
       if (numel (remaining_packages) == 0)
-        [~] = unlink (local_list);
+        [~] = unlink (conf.local.list);
       else
         local_packages = save_order (remaining_packages);
         if (ispc)
           local_packages = standardize_paths (local_packages);
         endif
-        save (local_list, "local_packages");
+        save (conf.local.list, "local_packages");
       endif
     endif
   endif

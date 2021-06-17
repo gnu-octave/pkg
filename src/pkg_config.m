@@ -71,38 +71,38 @@ function return_config = pkg_config (new_config)
   if (nargout)
     return_config = config;
   else
-    if (! isempty (config.user.prefix))
-      scope = "user";
-    elseif (config.has_elevated_rights)
-      scope = "global";
-    else
-      scope = "local";
-    endif
-    prefix = config.(scope).prefix;
-    archprefix = config.(scope).archprefix;
     printf ("\n");
     printf ("  pkg configuration:\n");
     printf ("  ------------------\n");
-    printf ("\n    Packages are installed by default to:\n\n");
-    printf ("      config.%s.prefix     = \"%s\"\n", scope, prefix);
-    printf ("      config.%s.archprefix = \"%s\"\n", scope, archprefix);
-    printf ("\n    Package index file(s):\n\n");
-    if ((exist (config.global.list, "file") == 2) || config.has_elevated_rights)
-      printf ("      config.global.list = \"%s\"\n", config.global.list);
-    endif
-    if ((exist (config.local.list, "file") == 2) ...
-        || (! config.has_elevated_rights && isempty (config.user.list)))
-      printf ("      config.local.list  = \"%s\"\n", config.local.list);
-    endif
-    if (! isempty (config.user.list) && (exist (config.user.list, "file") == 2))
-      printf ("      config.user.list   = \"%s\"\n", config.user.list);
-    endif
+
+    for scope = {"local", "global"}
+      list = config.(scope{1}).list;
+      prefix = config.(scope{1}).prefix;
+      archprefix = config.(scope{1}).archprefix;
+      printf ("\n    pkg install -%s\n", scope{1});
+      printf ("\n      config.%s.list       = \"%s\" ", scope{1}, list);
+      if (exist (config.(scope{1}).list, "file") != 2)
+        pkg_printf ("(Index file does not exist)", "red");
+      endif
+      printf ("\n      config.%s.prefix     = \"%s\" ", scope{1}, prefix);
+      if (exist (config.(scope{1}).prefix, "dir") != 7)
+        pkg_printf ("(Directory does not exist)", "red");
+      endif
+      printf ("\n      config.%s.archprefix = \"%s\" ", scope{1}, archprefix);
+      if (exist (config.(scope{1}).archprefix, "dir") != 7)
+        pkg_printf ("(Directory does not exist)", "red");
+      endif
+      printf ("\n");
+    endfor
+
     printf ("\n\n");
+
     printf ("  System information:\n");
     printf ("  -------------------\n\n");
+    printf ("    config.arch                = \"%s\"\n", config.arch);
+    printf ("    config.color               = %d\n", config.color);
     printf ("    config.has_elevated_rights = %d\n", ...
       config.has_elevated_rights);
-    printf ("    config.arch                = \"%s\"\n", config.arch);
     printf ("\n\n  Restore the default configuration with:");
     printf ("  pkg config -reset\n\n");
   endif
@@ -110,9 +110,9 @@ function return_config = pkg_config (new_config)
 endfunction
 
 
-function config = validate_new_config (new_config)
-  config_field_names = {"user"; "local"; "global"; "arch"; ...
-                        "has_elevated_rights"};
+function config = validate_new_config (config, new_config)
+  config_field_names = {"local"; "global"; "arch"; "color"; ...
+    "has_elevated_rights"};
   scope_field_names = {"archprefix"; "list"; "prefix"};
   if (! isstruct (new_config)
       || ! isequal (sort (fieldnames (new_config)), sort (config_field_names)))
@@ -120,15 +120,16 @@ function config = validate_new_config (new_config)
       "  'config = pkg_config ()'"]);
   endif
 
-  for i = 1:3
+  for i = 1:2
     if (! isequal (sort (fieldnames (new_config.(config_field_names{i}))), ...
                    scope_field_names))
       error (["pkg_config: input 'config' must be a struct like:", ...
         "  'config = pkg_config ()'"]);
     endif
     for j = 1:3
-      if (! ischar (new_config.(config_field_names{i}).(scope_field_names{j})))
-        error ("pkg_config: 'config.%s.%s' must be a string", ...
+      fval = new_config.(config_field_names{i}).(scope_field_names{j});
+      if (! ischar (fval) && ! isempty (fval))
+        error ("pkg_config: 'config.%s.%s' must be a string or empty", ...
           config_field_names{i}, scope_field_names{j});
       endif
     endfor
@@ -149,9 +150,6 @@ endfunction
 
 function config = get_default_config ()
   ## Default (arch)prefix and list paths.
-  config.user.list   = [];
-  config.user.prefix = [];
-  config.user.archprefix = [];
   config.local.list   = tilde_expand (fullfile ("~", ".octave_packages"));
   config.local.prefix = tilde_expand (fullfile ("~", "octave"));
   config.local.archprefix = config.local.prefix;
@@ -162,6 +160,13 @@ function config = get_default_config ()
   config.global.archprefix = fullfile ( ...
     __octave_config_info__ ("libdir"), "octave", "packages");
 
+  ## Get architecture information.
+  config.arch = [__octave_config_info__("canonical_host_type"), "-", ...
+                 __octave_config_info__("api_version")];
+
+  ## Experimental colored output.
+  config.color = true;
+
   ## If user is superuser (posix) or the process has elevated rights (Windows),
   ## set global_install to true.
   if (ispc () && ! isunix ())
@@ -169,8 +174,4 @@ function config = get_default_config ()
   else
     config.has_elevated_rights = (geteuid () == 0);
   endif
-
-  ## Get architecture information.
-  config.arch = [__octave_config_info__("canonical_host_type"), "-", ...
-                 __octave_config_info__("api_version")];
 endfunction

@@ -143,8 +143,6 @@ function varargout = pkg (varargin)
     "uninstall", ...
     "unload", ...
     "update"};
-  legacy_actions = { ...
-    "prefix"};
 
   ## Create help string.
   help_str = "Call 'pkg' with one of the following actions:\n\n";
@@ -173,13 +171,13 @@ function varargout = pkg (varargin)
     ## Legacy actions
     case "prefix"
       [varargout{1:nargout}] = legacy_pkg_prefix (varargin{2:end});
+
     case "global_list"
       [varargout{1:nargout}] = legacy_pkg_local_global_list ("global",
                                                              varargin{2:end});
     case "local_list"
       [varargout{1:nargout}] = legacy_pkg_local_global_list ("local",
                                                              varargin{2:end});
-
     otherwise
       error (["unsupported action '%s'.  ", help_str, "\n"], varargin{1});
   endswitch

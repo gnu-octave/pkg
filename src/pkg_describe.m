@@ -52,7 +52,12 @@
 ## @qcode{"Not loaded"} for each of the named packages.
 ## @end deftypefn
 
-function [pkg_desc_list, flag] = pkg_describe (pkgnames, verbose)
+function [pkg_desc_list_out, flag_out] = pkg_describe (varargin)
+
+  params = parse_parameter ({"-verbose"}, varargin{:});
+  if (! isempty (params.error))
+    error ("pkg_describe: %s\n\n%s\n\n", params.error, help ("pkg_describe"));
+  endif
 
   ## Get the list of installed packages.
   installed_pkgs_lst = pkg_list ();
@@ -60,13 +65,13 @@ function [pkg_desc_list, flag] = pkg_describe (pkgnames, verbose)
   ## Add inverse dependencies to "installed_pkgs_lst"
   installed_pkgs_lst = get_inverse_dependencies (installed_pkgs_lst);
 
-  if (isempty (pkgnames))
+  if (isempty (params.in))
     describe_all = true;
     flag(1:num_packages) = {"Not Loaded"};
     num_pkgnames = num_packages;
   else
     describe_all = false;
-    num_pkgnames = length (pkgnames);
+    num_pkgnames = length (params.in);
     flag(1:num_pkgnames) = {"Not installed"};
   endif
 
@@ -75,7 +80,7 @@ function [pkg_desc_list, flag] = pkg_describe (pkgnames, verbose)
     if (describe_all)
       name_pos = i;
     else
-      name_pos = find (strcmp (curr_name, pkgnames));
+      name_pos = find (strcmp (curr_name, params.in));
     endif
 
     if (! isempty (name_pos))
@@ -98,7 +103,7 @@ function [pkg_desc_list, flag] = pkg_describe (pkgnames, verbose)
   non_inst = find (strcmp (flag, "Not installed"));
   if (! isempty (non_inst))
     if (nargout < 2)
-      non_inst_str = sprintf (" %s ", pkgnames{non_inst});
+      non_inst_str = sprintf (" %s ", params.in{non_inst});
       error ("some packages are not installed: %s", non_inst_str);
     else
       pkg_desc_list{non_inst} = struct ("name", {}, "description",
@@ -114,8 +119,11 @@ function [pkg_desc_list, flag] = pkg_describe (pkgnames, verbose)
                                  pkg_desc_list{i}.description,
                                  pkg_desc_list{i}.depends,
                                  pkg_desc_list{i}.invdeps,
-                                 flag{i}, verbose);
+                                 flag{i}, params.flags.("-verbose"));
     endfor
+  else
+    pkg_desc_list_out = pkg_desc_list;
+    flag_out = flag;
   endif
 
 endfunction

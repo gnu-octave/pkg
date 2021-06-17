@@ -97,7 +97,7 @@ function load_packages_and_dependencies (idx, handle_deps, installed_pkgs_lst,
   execpath = EXEC_PATH ();
   for i = idx
     desc = installed_pkgs_lst{i};
-    desc.archdir = fullfile (desc.archprefix, getarch ());
+    desc.archdir = fullfile (desc.archprefix, [pkg_config()].arch);
     ndir = desc.dir;
     dirs{end+1} = ndir;
     if (isfolder (fullfile (dirs{end}, "bin")))

@@ -53,18 +53,19 @@
 ##
 ## @end deftypefn
 
-function pkg_build (files, verbose)
+function pkg_build (varargin)
 
-  if (nargin != 2)
-    print_usage ();
+  params = parse_parameter ({"-verbose"}, varargin{:});
+  if (! isempty (params.error))
+    error ("pkg_build: %s\n\n%s\n\n", params.error, help ("pkg_build"));
   endif
 
-  if (numel (files) < 2)
-    error ("pkg: build action requires build directory and at least one filename");
+  if (numel (params.in) < 2)
+    error ("pkg_build: build directory and at least one filename is required");
   endif
 
-  builddir = files{1};
-  tarballs = files(2:end);
+  builddir = params.in{1};
+  tarballs = params.in(2:end);
 
   if (! isfolder (builddir))
     warning ("creating build directory %s", builddir);
@@ -96,7 +97,7 @@ function pkg_build (files, verbose)
         && ! exist (fullfile (build_root, "src", "Makefile"), "file"))
       arch_abi = "any-none";
     else
-      arch_abi = getarch ();
+      arch_abi = [pkg_config()].arch;
       configure_make (desc, build_root, verbose);
       unlink (fullfile (build_root, "src", "configure"));
       unlink (fullfile (build_root, "src", "Makefile"));

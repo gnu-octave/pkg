@@ -65,6 +65,8 @@ function [out1, out2] = pkg_list (varargin)
     error ("pkg_list: %s\n\n%s\n\n", params.error, help ("pkg_list"));
   endif
 
+  conf = pkg_config ();
+
   ## FIXME: Legacy Octave Forge support.
   if (params.flags.("-forge"))
     if (nargout)
@@ -77,12 +79,12 @@ function [out1, out2] = pkg_list (varargin)
 
   ## Get the list of installed packages.
   try
-    local_packages = load (pkg_local_list ()).local_packages;
+    local_packages = load (conf.local.list).local_packages;
   catch
     local_packages = {};
   end_try_catch
   try
-    global_packages = load (pkg_global_list ()).global_packages;
+    global_packages = load (conf.global.list).global_packages;
     global_packages = expand_rel_paths (global_packages);
     if (ispc)
       ## On Windows ensure 8.3 style paths are turned into LFN paths
@@ -259,8 +261,9 @@ function list = list_forge_packages ()
     [~, idx] = unique (pkg_names, "first");
     files = files(idx);
 
-    page_screen_output (false, "local");
-    puts ("Octave Forge provides these packages:\n");
+    printf ("Octave Forge (legacy) provides these packages:\n\n");
+    printf ("  %-20s | Version\n", "Package Name");
+    printf ("  ---------------------+--------\n");
     for i = 1:length (list)
       pkg_nm = list{i};
       idx = regexp (files, sprintf ('^%s(?=-\\d)', pkg_nm));
@@ -270,7 +273,7 @@ function list = list_forge_packages ()
       else
         ver = "unknown";
       endif
-      printf ("  %s %s\n", pkg_nm, ver);
+      printf ("  %-20s | %s\n", pkg_nm, ver);
     endfor
   endif
 

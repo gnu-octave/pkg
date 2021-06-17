@@ -87,16 +87,26 @@
 ## @end table
 ## @end deftypefn
 
-function pkg_install (files)
-  if (isempty (files))
-    error ("pkg: install action requires at least one filename");
+function pkg_install (varargin)
+
+  params = parse_parameter ({"-forge", "-global", "-nodeps", "-verbose"}, ...
+    varargin{:});
+  if (! isempty (params.error))
+    error ("pkg_uninstall: %s\n\n%s\n\n", params.error, help ("pkg_uninstall"));
   endif
+
+  if (isempty (params.in))
+    error ("pkg_uninstall: at least one package name is required");
+  endif
+  files = params.in;
+
+  conf = pkg_config ();
 
   local_files = {};
   tmp_dir = tempname ();
   unwind_protect
 
-    if (octave_forge)
+    if (params.flags.("-forge"))
       [urls, local_files] = cellfun ("get_forge_download", files,
                                      "uniformoutput", false);
       [files, succ] = cellfun ("urlwrite", urls, local_files,
@@ -145,8 +155,7 @@ function pkg_install (files)
         endfor
       endif
     endif
-    pkg_install_interal (files, deps, prefix, archprefix, verbose, local_list,
-                         global_list, global_install);
+    pkg_install_internal (params);
 
   unwind_protect_cleanup
     [~] = cellfun ("unlink", local_files);
@@ -158,7 +167,7 @@ function pkg_install (files)
 endfunction
 
 
-function pkg_install_interal (files, handle_deps, prefix, archprefix, verbose,
+function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
                               local_list, global_list, global_install)
 
   ## Check that the directory in prefix exist.  If it doesn't: create it!
@@ -367,7 +376,7 @@ function pkg_install_interal (files, handle_deps, prefix, archprefix, verbose,
       copy_files (desc, pdir, global_install);
       create_pkgadddel (desc, pdir, "PKG_ADD", global_install);
       create_pkgadddel (desc, pdir, "PKG_DEL", global_install);
-      finish_installation (desc, pdir, global_install);
+      finish_installation (desc, pdir);
       generate_lookfor_cache (desc);
     endfor
   catch
@@ -941,7 +950,7 @@ function archprefix = getarchprefix (desc, global_install)
 endfunction
 
 
-function finish_installation (desc, packdir, global_install)
+function finish_installation (desc, packdir)
 
   ## Is there a post-install to call?
   if (exist (fullfile (packdir, "post_install.m"), "file"))

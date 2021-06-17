@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2005-2021 The Octave Project Developers
+## Copyright (C) 2016-2021 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -24,13 +24,36 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{arch} =} getarch ()
-## Undocumented internal function.
+## @deftypefn {} {} pkg_printf (@var{str}, @var{varargin})
+## Minimalistic implementation for better looking output.
 ## @end deftypefn
 
-function arch = getarch ()
-  persistent _arch = [__octave_config_info__("canonical_host_type"), "-", ...
-                      __octave_config_info__("api_version")];
+function pkg_printf (str, varargin)
 
-  arch = _arch;
+  if (nargin < 1)
+    print_usage ();
+  endif
+
+  conf = pkg_config ();
+  if (conf.color)
+    for i = 1:length (varargin)
+      switch (varargin{i})
+        case "red"
+          str = ['\033[31;1m', str ,'\033[0m'];
+        case "green"
+          str = ['\033[32;1m', str ,'\033[0m'];
+        case "yellow"
+          str = ['\033[33;1m', str ,'\033[0m'];
+        case "blue"
+          str = ['\033[34;1m', str ,'\033[0m'];
+        case "magenta"
+          str = ['\033[35;1m', str ,'\033[0m'];
+        case "cyan"
+          str = ['\033[36;1m', str ,'\033[0m'];
+      endswitch
+    endfor
+  endif
+
+  printf (str);
+
 endfunction

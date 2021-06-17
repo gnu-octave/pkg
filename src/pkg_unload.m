@@ -101,7 +101,7 @@ function pkg_unload (varargin)
   ## Check for architecture dependent directories.
   archdirs = {};
   for i = 1:numel (dirs)
-    archdir = fullfile (desc{i}.archprefix, getarch ());
+    archdir = fullfile (desc{i}.archprefix, [pkg_config()].arch);
     if (isfolder (archdir))
       archdirs{end+1} = dirs{i};
       archdirs{end+1} = archdir;
