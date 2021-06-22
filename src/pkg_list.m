@@ -58,7 +58,7 @@
 ## @end example
 ## @end deftypefn
 
-function [out1, out2] = pkg_list (varargin)
+function varargout = pkg_list (varargin)
 
   params = parse_parameter ({"-forge"}, varargin{:});
   if (! isempty (params.error))
@@ -70,7 +70,7 @@ function [out1, out2] = pkg_list (varargin)
   ## FIXME: Legacy Octave Forge support.
   if (params.flags.("-forge"))
     if (nargout)
-      out1 = list_forge_packages ();
+      varargout{1} = list_forge_packages ();
     else
       list_forge_packages ();
     endif
@@ -93,132 +93,109 @@ function [out1, out2] = pkg_list (varargin)
   catch
     global_packages = {};
   end_try_catch
-  installed_pkgs_lst = {local_packages{:}, global_packages{:}};
 
-  ## Eliminate duplicates in the installed package list.
-  ## Locally installed packages take precedence.
-  installed_names = cellfun (@(x) x.name, installed_pkgs_lst,
-                             "uniformoutput", false);
-  [~, idx] = unique (installed_names, "first");
-  installed_names = installed_names(idx);
-  installed_pkgs_lst = installed_pkgs_lst(idx);
-
-  ## Check whether info on a particular package was requested
+  ## Filter lists, if info on a particular packages was requested.
   if (! isempty (params.in))
-    idx = [];
-    for i = 1 : numel (params.in)
-      idx = [idx, find(strcmp (params.in{i}, installed_names))];
+    local_names = cellfun (@(x) x.name, local_packages, ...
+                           "UniformOutput", false);
+    global_names = cellfun (@(x) x.name, global_packages, ...
+                            "UniformOutput", false);
+    local_idx = false (size (local_names));
+    global_idx = false (size (global_names));
+    for i = 1:numel (params.in)
+      local_idx |= strcmp (params.in{i}, local_names);
+      global_idx |= strcmp (params.in{i}, global_names);
     endfor
-    if (isempty (idx))
-      installed_names = {};
-      installed_pkgs_lst = {};
-    else
-      installed_names = installed_names(idx);
-      installed_pkgs_lst = installed_pkgs_lst(idx);
+    local_packages = local_packages(local_idx);
+    global_packages = global_packages(global_idx);
+    if (isempty (local_packages))
+      local_packages = {};
+    endif
+    if (isempty (global_packages))
+      global_packages = {};
     endif
   endif
 
   ## Now check if the package is loaded.
-  ## FIXME: Couldn't dir_in_loadpath() be used here?
   tmppath = path ();
-  for i = 1:numel (installed_pkgs_lst)
-    if (strfind (tmppath, installed_pkgs_lst{i}.dir))
-      installed_pkgs_lst{i}.loaded = true;
-    else
-      installed_pkgs_lst{i}.loaded = false;
-    endif
-  endfor
   for i = 1:numel (local_packages)
-    if (strfind (tmppath, local_packages{i}.dir))
-      local_packages{i}.loaded = true;
-    else
-      local_packages{i}.loaded = false;
-    endif
+    local_packages{i}.loaded = (! isempty (strfind (tmppath, ...
+                                                    local_packages{i}.dir)));
   endfor
   for i = 1:numel (global_packages)
-    if (strfind (tmppath, global_packages{i}.dir))
-      global_packages{i}.loaded = true;
-    else
-      global_packages{i}.loaded = false;
-    endif
+    global_packages{i}.loaded = (! isempty (strfind (tmppath, ...
+                                                     global_packages{i}.dir)));
   endfor
 
-  ## Should we return something?
-  if (nargout == 1)
-    out1 = installed_pkgs_lst;
-  elseif (nargout > 1)
-    out1 = local_packages;
-    out2 = global_packages;
-  else
-    ## Don't return anything, instead we'll print something.
-    num_packages = numel (installed_pkgs_lst);
-    if (num_packages == 0)
-      if (isempty (params.in))
-        printf ("no packages installed.\n");
-      else
-        printf ("package %s is not installed.\n", params.in{1});
-      endif
-      return;
-    endif
-
-    ## Compute the maximal lengths of name, version, and dir.
-    h1 = "Package Name";
-    h2 = "Version";
-    h3 = "Installation directory";
-    max_name_length = max ([length(h1), cellfun(@length, installed_names)]);
-    version_lengths = cellfun (@(x) length (x.version), installed_pkgs_lst);
-    max_version_length = max ([length(h2), version_lengths]);
-    ncols = terminal_size ()(2);
-    max_dir_length = ncols - max_name_length - max_version_length - 7;
-    if (max_dir_length < 20)
-      max_dir_length = Inf;
-    endif
-
-    h1 = postpad (h1, max_name_length + 1, " ");
-    h2 = postpad (h2, max_version_length, " ");;
-
-    ## Print a header.
-    header = sprintf ("%s | %s | %s\n", h1, h2, h3);
-    printf (header);
-    tmp = sprintf (repmat ("-", 1, length (header) - 1));
-    tmp(length (h1)+2) = "+";
-    tmp(length (h1)+length (h2)+5) = "+";
-    printf ("%s\n", tmp);
-
-    ## Print the packages.
-    format = sprintf ("%%%ds %%1s| %%%ds | %%s\n",
-                      max_name_length, max_version_length);
-    for i = 1:num_packages
-      cur_name = installed_pkgs_lst{i}.name;
-      cur_version = installed_pkgs_lst{i}.version;
-      cur_dir = installed_pkgs_lst{i}.dir;
-      if (length (cur_dir) > max_dir_length)
-        first_char = length (cur_dir) - max_dir_length + 4;
-        first_filesep = strfind (cur_dir(first_char:end), filesep ());
-        if (! isempty (first_filesep))
-          cur_dir = ["..." cur_dir((first_char + first_filesep(1) - 1):end)];
-        else
-          cur_dir = ["..." cur_dir(first_char:end)];
-        endif
-      endif
-      if (installed_pkgs_lst{i}.loaded)
-        cur_loaded = "*";
-      else
-        cur_loaded = " ";
-      endif
-      printf (format, cur_name, cur_loaded, cur_version, cur_dir);
-    endfor
+  ## Finished if two lists are requested.
+  if (nargout > 1)
+    varargout = {local_packages, global_packages};
+    return;
   endif
+
+  ## Create unified list without duplicates, local_packages take precedence.
+  installed_pkgs_lst = {local_packages{:}, global_packages{:}};
+  installed_names = cellfun (@(x) x.name, installed_pkgs_lst,
+                             "UniformOutput", false);
+  [~, idx] = unique (installed_names, "first");
+  installed_names = installed_names(idx);
+  installed_pkgs_lst = installed_pkgs_lst(idx);
+
+  ## Finished if unified list is requested.
+  if (nargout == 1)
+    varargout = installed_pkgs_lst;
+    return;
+  endif
+
+  ## Nothing requested, print list.
+  num_packages = numel (installed_pkgs_lst);
+  if (num_packages == 0)
+    if (isempty (params.in))
+      pkg_printf ({"red"}, "no packages installed.\n");
+    else
+      pkg_printf ({"red"}, "package '%s' is not installed.\n", params.in{1});
+    endif
+    return;
+  endif
+
+  ## Create table output.
+  installed_versions = cellfun (@(x) x.version, installed_pkgs_lst,
+                                "UniformOutput", false);
+  installed_dirs = cellfun (@(x) x.dir, installed_pkgs_lst,
+                            "UniformOutput", false);
+  installed_loaded = cellfun (@(x) ifelse (x.loaded, "loaded", "") , ...
+                              installed_pkgs_lst, "UniformOutput", false);
+  columns = [{"Package Name", "", installed_names{:}}', ...
+             {"Version", "", installed_versions{:}}', ...
+             {"State", "", installed_loaded{:}}', ...
+             {"Installation directory", "", installed_dirs{:}}'];
+  col_align = {"", "", "", "-"};  # "-" means left align, right otherwise.
+  for i = 1:size (columns, 2)
+    max_width = max (cellfun (@(x) length(x), columns(:,i)));
+    columns{1,i} = sprintf([" %-" num2str(max_width) "s "], columns{1,i});
+    columns(3:end,i) = cellfun (...
+      @(x) sprintf([" %", col_align{i}, num2str(max_width), "s "], x), ...
+      columns(3:end,i), "UniformOutput", false);
+    columns(:,i) = [columns(1,i); repmat("-", 1, max_width + 2); ...
+                    columns(3:end,i)];
+  endfor
+  for i = 1:size (columns, 1)
+    if (i == 2)
+      disp (strjoin (columns(i,:), "+"));
+    else
+      disp (strjoin (columns(i,:), "|"));
+    endif
+  endfor
 
 endfunction
 
 
 function pkg_list = expand_rel_paths (pkg_list)
 
-  ## Prepend location of OCTAVE_HOME to install directories
+  ## Prepend location of OCTAVE_HOME to install directories.
   loc = OCTAVE_HOME ();
   for i = 1:numel (pkg_list)
-    ## Be sure to only prepend OCTAVE_HOME to pertinent package paths
+    ## Be sure to only prepend OCTAVE_HOME to pertinent package paths.
     if (strncmpi (pkg_list{i}.dir, "__OH__", 6))
       pkg_list{i}.dir = [ loc pkg_list{i}.dir(7:end) ];
       pkg_list{i}.archprefix = [ loc pkg_list{i}.archprefix(7:end) ];

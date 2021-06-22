@@ -24,16 +24,36 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_printf (@var{attributes}, @var{str}, @var{varargin})
+## @deftypefn {} {str = } pkg_sprintf (@var{attributes}, @var{str}, @var{varargin})
 ## Minimalistic implementation for better looking output.
 ## @end deftypefn
 
-function pkg_printf (attributes, str, varargin)
+function str = pkg_sprintf (attributes, str, varargin)
 
-  if (nargin < 2)
+  if (nargin < 1)
     print_usage ();
   endif
 
-  printf (pkg_sprintf (attributes, str, varargin{:}));
+  conf = pkg_config ();
+  if (conf.color)
+    for i = 1:length (attributes)
+      switch (attributes{i})
+        case "red"
+          str = ['\033[31;1m', str ,'\033[0m'];
+        case "green"
+          str = ['\033[32;1m', str ,'\033[0m'];
+        case "yellow"
+          str = ['\033[33;1m', str ,'\033[0m'];
+        case "blue"
+          str = ['\033[34;1m', str ,'\033[0m'];
+        case "magenta"
+          str = ['\033[35;1m', str ,'\033[0m'];
+        case "cyan"
+          str = ['\033[36;1m', str ,'\033[0m'];
+      endswitch
+    endfor
+  endif
+
+  str = sprintf (str, varargin{:});
 
 endfunction

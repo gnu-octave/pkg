@@ -74,23 +74,28 @@ function return_config = pkg_config (new_config)
     printf ("\n");
     printf ("  pkg configuration:\n");
     printf ("  ------------------\n");
+    
+    [local_pkg_list, global_pkg_list] = pkg_list ();
+    num_pkgs.("local") = numel (local_pkg_list);
+    num_pkgs.("global") = numel (global_pkg_list);
 
     for scope = {"local", "global"}
       list = config.(scope{1}).list;
       prefix = config.(scope{1}).prefix;
       archprefix = config.(scope{1}).archprefix;
-      printf ("\n    pkg install -%s\n", scope{1});
+      printf ("\n    pkg install -%s  ", scope{1});
+      pkg_printf ({"blue"}, "[%d package(s)]\n", num_pkgs.(scope{1}));
       printf ("\n      config.%s.list       = \"%s\" ", scope{1}, list);
       if (exist (config.(scope{1}).list, "file") != 2)
-        pkg_printf ("(Index file does not exist)", "red");
+        pkg_printf ({"red"}, "(Index file does not exist)");
       endif
       printf ("\n      config.%s.prefix     = \"%s\" ", scope{1}, prefix);
       if (exist (config.(scope{1}).prefix, "dir") != 7)
-        pkg_printf ("(Directory does not exist)", "red");
+        pkg_printf ({"red"}, "(Directory does not exist)");
       endif
       printf ("\n      config.%s.archprefix = \"%s\" ", scope{1}, archprefix);
       if (exist (config.(scope{1}).archprefix, "dir") != 7)
-        pkg_printf ("(Directory does not exist)", "red");
+        pkg_printf ({"red"}, "(Directory does not exist)");
       endif
       printf ("\n");
     endfor
@@ -104,7 +109,7 @@ function return_config = pkg_config (new_config)
     printf ("    config.has_elevated_rights = %d\n", ...
       config.has_elevated_rights);
     printf ("\n\n  Restore the default configuration with:");
-    printf ("  pkg config -reset\n\n");
+    pkg_printf ({"blue"}, "  pkg config -reset\n\n");
   endif
 
 endfunction
