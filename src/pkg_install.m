@@ -24,7 +24,7 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_install (@var{files}, @var{handle_deps}, @var{prefix}, @var{archprefix}, @var{verbose}, @var{local_list}, @var{global_list}, @var{global_install})
+## @deftypefn {} {} pkg_install (@var{files})
 ## Install named packages.  For example,
 ##
 ## @example
@@ -92,15 +92,16 @@ function pkg_install (varargin)
   params = parse_parameter ({"-forge", "-global", "-nodeps", "-verbose"}, ...
     varargin{:});
   if (! isempty (params.error))
-    error ("pkg_uninstall: %s\n\n%s\n\n", params.error, help ("pkg_uninstall"));
+    error ("pkg_install: %s\n\n%s\n\n", params.error, help ("pkg_install"));
   endif
 
   if (isempty (params.in))
-    error ("pkg_uninstall: at least one package name is required");
+    error ("pkg_install: at least one package name is required");
   endif
   files = params.in;
 
-  conf = pkg_config ();
+  ## If something goes wrong, many directories have to be removed.
+  confirm_recursive_rmdir (false, "local");
 
   local_files = {};
   tmp_dir = tempname ();
@@ -155,7 +156,7 @@ function pkg_install (varargin)
         endfor
       endif
     endif
-    pkg_install_internal (params);
+    pkg_install_internal (files, params);
 
   unwind_protect_cleanup
     [~] = cellfun ("unlink", local_files);
@@ -167,8 +168,17 @@ function pkg_install (varargin)
 endfunction
 
 
-function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
-                              local_list, global_list, global_install)
+function pkg_install_internal (files, params)
+
+  conf = pkg_config ();
+  global_install = params.flags.("-global");
+  if (global_install)
+    prefix = conf.global.prefix;
+    archprefix = conf.global.archprefix;
+  else
+    prefix = conf.local.prefix;
+    archprefix = conf.local.archprefix;
+  endif
 
   ## Check that the directory in prefix exist.  If it doesn't: create it!
   if (! isfolder (prefix))
@@ -216,7 +226,7 @@ function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
         ## Create a temporary directory.
         tmpdir = tempname ();
         tmpdirs{end+1} = tmpdir;
-        if (verbose)
+        if (params.flags.("-verbose"))
           printf ("mkdir (%s)\n", tmpdir);
         endif
         [status, msg] = mkdir (tmpdir);
@@ -231,7 +241,7 @@ function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
         else
           func_uncompress = @untar;
         endif
-        if (verbose)
+        if (params.flags.("-verbose"))
           printf ("%s (%s, %s)\n", func2str (func_uncompress), tgz, tmpdir);
         endif
         func_uncompress (tgz, tmpdir);
@@ -273,7 +283,7 @@ function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
 
         ## Set default architectire dependent installation directory.
         desc.archprefix = fullfile (archprefix, [desc.name "-" desc.version]);
-        desc.archdir    = fullfile (desc.archprefix, getarch ());
+        desc.archdir    = fullfile (desc.archprefix, conf.arch);
 
         ## Save desc.
         descriptions{end+1} = desc;
@@ -296,7 +306,7 @@ function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
   end_try_catch
 
   ## Check dependencies.
-  if (handle_deps)
+  if (! params.flags.("-nodeps"))
     ok = true;
     error_text = "";
     for i = 1:length (descriptions)
@@ -338,8 +348,8 @@ function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
       desc = descriptions{i};
       pdir = packdirs{i};
       prepare_installation (desc, pdir);
-      configure_make (desc, pdir, verbose);
-      copy_built_files (desc, pdir, verbose);
+      configure_make (desc, pdir, params.flags.("-verbose"));
+      copy_built_files (desc, pdir, params.flags.("-verbose"));
     endfor
   catch
     ## Something went wrong, delete tmpdirs.
@@ -353,11 +363,9 @@ function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
   try
     for i = packages_to_uninstall
       if (global_install)
-        pkg_uninstall ({global_packages{i}.name}, false, verbose, local_list,
-                       global_list, global_install);
+        pkg_uninstall (global_packages{i}.name, "-nodeps", "-global");
       else
-        pkg_uninstall ({local_packages{i}.name}, false, verbose, local_list,
-                       global_list, global_install);
+        pkg_uninstall (local_packages{i}.name, "-nodeps");
       endif
     endfor
   catch
@@ -413,7 +421,7 @@ function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
         global_packages = standardize_paths (global_packages);
       endif
       global_packages = make_rel_paths (global_packages);
-      save (global_list, "global_packages");
+      save (conf.global.list, "global_packages");
       installed_pkgs_lst = {local_packages{:}, global_packages{:}};
     else
       idx = setdiff (1:length (local_packages), packages_to_uninstall);
@@ -421,12 +429,12 @@ function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
       if (ispc)
         local_packages = standardize_paths (local_packages);
       endif
-      if (! exist (fileparts (local_list), "dir")
-          && ! mkdir (fileparts (local_list)))
+      if (! exist (fileparts (conf.local.list), "dir")
+          && ! mkdir (fileparts (conf.local.list)))
         error ("Octave:pkg:install:local-dir", ...
                "pkg: Could not create directory for local package configuration");
       endif
-      save (local_list, "local_packages");
+      save (conf.local.list, "local_packages");
       installed_pkgs_lst = {local_packages{:}, global_packages{:}};
     endif
   catch
@@ -438,9 +446,9 @@ function pkg_install_internal (files, handle_deps, prefix, archprefix, verbose,
       sts = rmdir (descriptions{i}.dir, "s");
     endfor
     if (global_install)
-      printf ("error: couldn't append to %s\n", global_list);
+      printf ("error: couldn't append to %s\n", conf.global.list);
     else
-      printf ("error: couldn't append to %s\n", local_list);
+      printf ("error: couldn't append to %s\n", conf.local.list);
     endif
     rethrow (lasterror ());
   end_try_catch
@@ -545,7 +553,7 @@ function copy_built_files (desc, packdir, verbose)
   ## Copy files to "inst" and "inst/arch" (this is instead of 'make install').
   files = fullfile (src, "FILES");
   instdir = fullfile (packdir, "inst");
-  archdir = fullfile (packdir, "inst", getarch ());
+  archdir = fullfile (packdir, "inst", [pkg_config()].arch);
 
   ## Get filenames.
   if (exist (files, "file"))
@@ -673,8 +681,8 @@ function copy_files (desc, packdir, global_install)
       sts = rmdir (desc.dir, "s");
       error ("couldn't copy files to the installation directory");
     endif
-    if (isfolder (fullfile (desc.dir, getarch ()))
-        && ! is_same_file (fullfile (desc.dir, getarch ()), octfiledir))
+    target_dir = fullfile (desc.dir, [pkg_config()].arch);
+    if (isfolder (target_dir) && ! is_same_file (target_dir, octfiledir))
       if (! isfolder (octfiledir))
         ## Can be required to create up to three levels of dirs.
         octm1 = fileparts (octfiledir);
@@ -711,9 +719,8 @@ function copy_files (desc, packdir, global_install)
                  octfiledir, output);
         endif
       endif
-      [status, output] = movefile (fullfile (desc.dir, getarch (), "*"),
-                                   octfiledir);
-      sts = rmdir (fullfile (desc.dir, getarch ()), "s");
+      [status, output] = movefile (fullfile (target_dir, "*"), octfiledir);
+      sts = rmdir (target_dir, "s");
 
       if (status != 1)
         sts = rmdir (desc.dir, "s");
@@ -870,7 +877,7 @@ function create_pkgadddel (desc, packdir, nm, global_install)
   ## commands work as expected.  The only part that doesn't is the
   ## part in the main directory.
   archdir = fullfile (getarchprefix (desc, global_install),
-                      [desc.name "-" desc.version], getarch ());
+                      [desc.name "-" desc.version], [pkg_config()].arch);
   if (isfolder (desc.archdir))
     archpkg = fullfile (desc.archdir, nm);
     archfid = fopen (archpkg, "at");
