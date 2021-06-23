@@ -140,16 +140,20 @@ function config = validate_new_config (config, new_config)
     endfor
   endfor
 
+  ## Check local list files, global most likely not writable.
+  list_file = new_config.local.list;
+  if (! isempty (list_file) && ! exist (list_file, "file"))
+    try
+      ## Force file to be created
+      fclose (fopen (list_file, "wt"));
+    catch
+      error ("pkg_config: cannot create local list file '%s'", list_file);
+    end_try_catch
+    new_config.local.list = canonicalize_file_name (tilde_expand (list_file));
+  endif
+
   config = new_config;
 
-##  if (! exist (list_file, "file"))
-##    try
-##      ## Force file to be created
-##      fclose (fopen (list_file, "wt"));
-##    catch
-##      error ("pkg: cannot create file %s", list_file);
-##    end_try_catch
-##  endif
 endfunction
 
 

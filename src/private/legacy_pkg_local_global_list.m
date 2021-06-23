@@ -64,12 +64,14 @@ function out_file = legacy_pkg_local_global_list (scope, list_file)
     if (! ischar (list_file))
       error ("pkg: invalid list file");
     endif
-    conf.(scope).list = canonicalize_file_name (tilde_expand (list_file));
+    conf.(scope).list = list_file;
     conf = pkg_config (conf);
   endif
 
-  if ((nargout == 0) && isempty (list_file))
-    disp (conf.(scope).list);
+  if (nargout == 0)
+    if (nargin == 1)
+      disp (conf.(scope).list);
+    endif
   else
     out_file = conf.(scope).list;
   endif

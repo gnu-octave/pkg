@@ -143,7 +143,7 @@ function varargout = pkg_list (varargin)
 
   ## Finished if unified list is requested.
   if (nargout == 1)
-    varargout = installed_pkgs_lst;
+    varargout = {installed_pkgs_lst};
     return;
   endif
 
@@ -165,27 +165,11 @@ function varargout = pkg_list (varargin)
                             "UniformOutput", false);
   installed_loaded = cellfun (@(x) ifelse (x.loaded, "loaded", "") , ...
                               installed_pkgs_lst, "UniformOutput", false);
-  columns = [{"Package Name", "", installed_names{:}}', ...
-             {"Version", "", installed_versions{:}}', ...
-             {"State", "", installed_loaded{:}}', ...
-             {"Installation directory", "", installed_dirs{:}}'];
-  col_align = {"", "", "", "-"};  # "-" means left align, right otherwise.
-  for i = 1:size (columns, 2)
-    max_width = max (cellfun (@(x) length(x), columns(:,i)));
-    columns{1,i} = sprintf([" %-" num2str(max_width) "s "], columns{1,i});
-    columns(3:end,i) = cellfun (...
-      @(x) sprintf([" %", col_align{i}, num2str(max_width), "s "], x), ...
-      columns(3:end,i), "UniformOutput", false);
-    columns(:,i) = [columns(1,i); repmat("-", 1, max_width + 2); ...
-                    columns(3:end,i)];
-  endfor
-  for i = 1:size (columns, 1)
-    if (i == 2)
-      disp (strjoin (columns(i,:), "+"));
-    else
-      disp (strjoin (columns(i,:), "|"));
-    endif
-  endfor
+  columns = [{"Package Name", installed_names{:}}', ...
+             {"Version", installed_versions{:}}', ...
+             {"Status", installed_loaded{:}}', ...
+             {"Installation directory", installed_dirs{:}}'];
+  disp (pkg_table (columns, "rrrl"));
 
 endfunction
 

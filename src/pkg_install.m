@@ -89,8 +89,8 @@
 
 function pkg_install (varargin)
 
-  params = parse_parameter ({"-forge", "-global", "-nodeps", "-verbose"}, ...
-    varargin{:});
+  params = parse_parameter ( ...
+    {"-forge", "-global", "-local", "-nodeps", "-verbose"}, varargin{:});
   if (! isempty (params.error))
     error ("pkg_install: %s\n\n%s\n\n", params.error, help ("pkg_install"));
   endif
