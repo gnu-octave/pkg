@@ -85,39 +85,82 @@ function return_config = pkg_config (new_config)
       archprefix = config.(scope{1}).archprefix;
       printf ("\n    pkg install -%s  ", scope{1});
       pkg_printf ({"blue"}, "[%d package(s)]\n", num_pkgs.(scope{1}));
-      printf ("\n      config.%s.list       = \"%s\" ", scope{1}, list);
+      printf ("\n      config.%s.list       = ", scope{1});
       if (exist (config.(scope{1}).list, "file") != 2)
-        pkg_printf ({"red"}, "(Index file does not exist)");
+        pkg_printf ({"cross"});
+        printf (" ");
+        pkg_printf ({"red"}, "\"%s\"", list);
+      else
+        pkg_printf ({"check"});
+        printf (" ");
+        pkg_printf ({"black"}, "\"%s\"", list);
       endif
-      printf ("\n      config.%s.prefix     = \"%s\" ", scope{1}, prefix);
+      printf ("\n      config.%s.prefix     = ", scope{1});
       if (exist (config.(scope{1}).prefix, "dir") != 7)
-        pkg_printf ({"red"}, "(Directory does not exist)");
+        pkg_printf ({"cross"});
+        printf (" ");
+        pkg_printf ({"red"}, "\"%s\"", prefix);
+      else
+        pkg_printf ({"check"});
+        printf (" ");
+        pkg_printf ({"black"}, "\"%s\"", prefix);
       endif
-      printf ("\n      config.%s.archprefix = \"%s\" ", scope{1}, archprefix);
+      printf ("\n      config.%s.archprefix = ", scope{1});
       if (exist (config.(scope{1}).archprefix, "dir") != 7)
-        pkg_printf ({"red"}, "(Directory does not exist)");
+        pkg_printf ({"cross"});
+        printf (" ");
+        pkg_printf ({"red"}, "\"%s\"", archprefix);
+      else
+        pkg_printf ({"check"});
+        printf (" ");
+        pkg_printf ({"black"}, "\"%s\"", archprefix);
       endif
       printf ("\n");
     endfor
+
+    printf ("\n    Cache  ");
+    ## Compute items in cache.
+    if (exist (config.cache_dir, "dir") == 7)
+      item_count = readdir (config.cache_dir);
+      item_count(strcmp (item_count, ".") | strcmp (item_count, "..")) = [];
+      item_count = numel (item_count);
+    else
+      item_count = 0;
+    endif
+    pkg_printf ({"blue"}, "[%d item(s)]\n", item_count);
+    printf ("\n      config.cache_dir = ");
+    if (exist (config.cache_dir, "dir") != 7)
+      pkg_printf ({"cross"});
+      printf (" ");
+      pkg_printf ({"red"}, "\"%s\"", config.cache_dir);
+    else
+      pkg_printf ({"check"});
+      printf (" ");
+      pkg_printf ({"black"}, "\"%s\"", config.cache_dir);
+    endif
 
     printf ("\n\n");
 
     printf ("  System information:\n");
     printf ("  -------------------\n\n");
     printf ("    config.arch                = \"%s\"\n", config.arch);
-    printf ("    config.color               = %d\n", config.color);
-    printf ("    config.has_elevated_rights = %d\n", ...
-      config.has_elevated_rights);
+    printf ("    config.color_output        = %s\n", ...
+      pkg_sprintf ({"bool"}, config.color_output));
+    printf ("    config.emoji_output        = %s\n", ...
+      pkg_sprintf ({"bool"}, config.emoji_output));
+    printf ("    config.has_elevated_rights = %s\n", ...
+      pkg_sprintf ({"bool"}, config.has_elevated_rights));
     printf ("\n\n  Restore the default configuration with:");
-    pkg_printf ({"blue"}, "  pkg config -reset\n\n");
+    pkg_printf ({"blue"}, "  pkg config -reset\n");
+    printf ("\n");
   endif
 
 endfunction
 
 
 function config = validate_new_config (config, new_config)
-  config_field_names = {"local"; "global"; "arch"; "color"; ...
-    "has_elevated_rights"};
+  config_field_names = {"local"; "global"; "arch"; "cache_dir"; ...
+    "color_output"; "emoji_output"; "has_elevated_rights"};
   scope_field_names = {"archprefix"; "list"; "prefix"};
   if (! isstruct (new_config)
       || ! isequal (sort (fieldnames (new_config)), sort (config_field_names)))
@@ -169,12 +212,16 @@ function config = get_default_config ()
   config.global.archprefix = fullfile ( ...
     __octave_config_info__ ("libdir"), "octave", "packages");
 
+  ## Cache directory
+  config.cache_dir = fullfile (config.local.prefix, ".cache");
+
   ## Get architecture information.
   config.arch = [__octave_config_info__("canonical_host_type"), "-", ...
                  __octave_config_info__("api_version")];
 
   ## Experimental colored output.
-  config.color = true;
+  config.color_output = true;
+  config.emoji_output = true;
 
   ## If user is superuser (posix) or the process has elevated rights (Windows),
   ## set global_install to true.

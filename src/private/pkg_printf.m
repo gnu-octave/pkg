@@ -28,12 +28,8 @@
 ## Minimalistic implementation for better looking output.
 ## @end deftypefn
 
-function pkg_printf (attributes, str, varargin)
+function pkg_printf (varargin)
 
-  if (nargin < 2)
-    print_usage ();
-  endif
-
-  printf (pkg_sprintf (attributes, str, varargin{:}));
+  printf (pkg_sprintf (varargin{:}));
 
 endfunction

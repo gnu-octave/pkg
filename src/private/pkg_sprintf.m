@@ -34,22 +34,58 @@ function str = pkg_sprintf (attributes, str, varargin)
     print_usage ();
   endif
 
+  if ((nargin < 2) || isempty (str))
+    str = "";
+  endif
+
   conf = pkg_config ();
-  if (conf.color)
+  for i = 1:length (attributes)
+    switch (attributes{i})
+      case "check"
+        if (conf.emoji_output)
+          str = "✅";
+        else
+          str = "[ ok]";
+          attributes{i} = "green";
+        endif
+      case "cross"
+        if (conf.emoji_output)
+          str = "❌";
+        else
+          str = "[err]";
+          attributes{i} = "red";
+        endif
+      case "bool"
+        if (conf.emoji_output)
+          if (logical (str))
+            str = "✅";
+          else
+            str = "❌";
+          endif
+        else
+          str = num2str (str);
+        endif
+    endswitch
+  endfor
+
+  if (conf.color_output)
+    ## https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
     for i = 1:length (attributes)
       switch (attributes{i})
+        case "black"
+          str = ['\033[38;5;0m', str,'\033[0m'];
         case "red"
-          str = ['\033[31;1m', str ,'\033[0m'];
+          str = ['\033[38;5;1m', str,'\033[0m'];
         case "green"
-          str = ['\033[32;1m', str ,'\033[0m'];
+          str = ['\033[38;5;2m', str,'\033[0m'];
         case "yellow"
-          str = ['\033[33;1m', str ,'\033[0m'];
+          str = ['\033[38;5;3m', str,'\033[0m'];
         case "blue"
-          str = ['\033[34;1m', str ,'\033[0m'];
+          str = ['\033[38;5;4m', str,'\033[0m'];
         case "magenta"
-          str = ['\033[35;1m', str ,'\033[0m'];
+          str = ['\033[38;5;5m', str,'\033[0m'];
         case "cyan"
-          str = ['\033[36;1m', str ,'\033[0m'];
+          str = ['\033[38;5;6m', str,'\033[0m'];
       endswitch
     endfor
   endif
