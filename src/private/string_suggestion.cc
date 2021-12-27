@@ -135,12 +135,34 @@ or an empty string if no correction counld be found.\n\
 
   // Fill dictionary with word of second argument.
   Cell c = args(1).cell_value ();
+  std::list<std::string> results;
   for (octave_idx_type i = 0; i < c.numel (); i++)
     {
+      std::string item = c(i).string_value ();
+
+      // If word is a substring of item, note as candidate.
+      if (item.find (word) != std::string::npos)
+        results.push_back (item);
+
       // Give all entries the same "weight" of "1".
       // Weighting not implementated yet.
-      dictionary[c(i).string_value ()] = 1;
+      dictionary[item] = 1;
     }
 
-  return ovl (correct (word));
+  std::string spell_suggestion = correct (word);
+  // Add spell suggestion, if not already contained in the list.
+  if (! spell_suggestion.empty())
+    {
+      for (auto it = results.begin(); it != results.end(); ) {
+        if (*it == spell_suggestion)
+          {
+            it = results.erase(it);
+          } else {
+            ++it;
+          }
+      }
+      results.push_front (spell_suggestion);
+    }
+
+  return ovl (Cell (results));
 }
