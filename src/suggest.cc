@@ -119,12 +119,12 @@ std::string correct(const std::string& word)
 }
 
 
-DEFUN_DLD (string_suggestion, args, nargout,
+DEFUN_DLD (suggest, args, nargout,
            "-*- texinfo -*-\n\
-@deftypefn {} {@var{str} = } string_suggestion (@var{word}, @var{WORDS})\n\
+@deftypefn {} {@var{str} = } suggest (@var{word}, @var{WORDS})\n\
 \n\
-Return most likely correction of @var{word} from given @var{WORDS}\n\
-or an empty string if no correction counld be found.\n\
+Return most likely corrections of @var{word} from given @var{WORDS}\n\
+or an empty cell if no correction counld be found.\n\
 @end deftypefn")
 {
   if (args.length () != 2)
