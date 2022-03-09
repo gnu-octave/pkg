@@ -54,6 +54,8 @@
 
 function [pkg_desc_list_out, flag_out] = pkg_describe (varargin)
 
+  pkg_startup_hook ();
+
   params = parse_parameter ({"-verbose"}, varargin{:});
   if (! isempty (params.error))
     error ("pkg_describe: %s\n\n%s\n\n", params.error, help ("pkg_describe"));

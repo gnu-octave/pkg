@@ -55,6 +55,8 @@
 
 function pkg_load (varargin)
 
+  pkg_startup_hook ();
+
   params = parse_parameter ({"-nodeps"}, varargin{:});
   if (! isempty (params.error))
     error ("pkg_load: %s\n\n%s\n\n", params.error, help ("pkg_load"));

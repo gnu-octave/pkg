@@ -39,6 +39,8 @@
 
 function pkg_uninstall (varargin)
 
+  pkg_startup_hook ();
+
   params = parse_parameter ({"-global", "-nodeps"}, varargin{:});
   if (! isempty (params.error))
     error ("pkg_uninstall: %s\n\n%s\n\n", params.error, help ("pkg_uninstall"));

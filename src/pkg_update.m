@@ -39,6 +39,8 @@
 
 function pkg_update (varargin)
 
+  pkg_startup_hook ();
+
   installed_pkgs_lst = pkg_list ();
 
   ## Explicit list of packages to update, rather than all packages

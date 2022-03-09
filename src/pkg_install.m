@@ -89,6 +89,8 @@
 
 function pkg_install (varargin)
 
+  pkg_startup_hook ();
+
   params = parse_parameter ( ...
     {"-forge", "-global", "-local", "-nodeps", "-verbose"}, varargin{:});
   if (! isempty (params.error))

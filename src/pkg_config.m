@@ -55,6 +55,8 @@ function return_config = pkg_config (new_config)
 
   persistent config = [];
 
+  pkg_startup_hook ();
+
   ## Do not get removed from memory, even if "clear" is called.
   mlock ();
 

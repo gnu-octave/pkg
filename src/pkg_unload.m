@@ -38,6 +38,8 @@
 
 function pkg_unload (varargin)
 
+  pkg_startup_hook ();
+
   params = parse_parameter ({"-nodeps"}, varargin{:});
   if (! isempty (params.error))
     error ("pkg_unload: %s\n\n%s\n\n", params.error, help ("pkg_unload"));
