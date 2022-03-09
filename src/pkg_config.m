@@ -82,41 +82,14 @@ function return_config = pkg_config (new_config)
     num_pkgs.("global") = numel (global_pkg_list);
 
     for scope = {"local", "global"}
-      list = config.(scope{1}).list;
-      prefix = config.(scope{1}).prefix;
-      archprefix = config.(scope{1}).archprefix;
       printf ("\n    pkg install -%s  ", scope{1});
       pkg_printf ({"blue"}, "[%d package(s)]\n", num_pkgs.(scope{1}));
       printf ("\n      config.%s.list       = ", scope{1});
-      if (exist (config.(scope{1}).list, "file") != 2)
-        pkg_printf ({"cross"});
-        printf (" ");
-        pkg_printf ({"red"}, "\"%s\"", list);
-      else
-        pkg_printf ({"check"});
-        printf (" ");
-        pkg_printf ({"black"}, "\"%s\"", list);
-      endif
+      printf_file_exist (config.(scope{1}).list);
       printf ("\n      config.%s.prefix     = ", scope{1});
-      if (exist (config.(scope{1}).prefix, "dir") != 7)
-        pkg_printf ({"cross"});
-        printf (" ");
-        pkg_printf ({"red"}, "\"%s\"", prefix);
-      else
-        pkg_printf ({"check"});
-        printf (" ");
-        pkg_printf ({"black"}, "\"%s\"", prefix);
-      endif
+      printf_path_exist (config.(scope{1}).prefix);
       printf ("\n      config.%s.archprefix = ", scope{1});
-      if (exist (config.(scope{1}).archprefix, "dir") != 7)
-        pkg_printf ({"cross"});
-        printf (" ");
-        pkg_printf ({"red"}, "\"%s\"", archprefix);
-      else
-        pkg_printf ({"check"});
-        printf (" ");
-        pkg_printf ({"black"}, "\"%s\"", archprefix);
-      endif
+      printf_path_exist (archprefix = config.(scope{1}).archprefix);
       printf ("\n");
     endfor
 
@@ -131,15 +104,7 @@ function return_config = pkg_config (new_config)
     endif
     pkg_printf ({"blue"}, "[%d item(s)]\n", item_count);
     printf ("\n      config.cache_dir = ");
-    if (exist (config.cache_dir, "dir") != 7)
-      pkg_printf ({"cross"});
-      printf (" ");
-      pkg_printf ({"red"}, "\"%s\"", config.cache_dir);
-    else
-      pkg_printf ({"check"});
-      printf (" ");
-      pkg_printf ({"black"}, "\"%s\"", config.cache_dir);
-    endif
+    printf_path_exist (config.cache_dir);
 
     printf ("\n\n");
 
@@ -152,6 +117,10 @@ function return_config = pkg_config (new_config)
       pkg_sprintf ({"bool"}, config.emoji_output));
     printf ("    config.has_elevated_rights = %s\n", ...
       pkg_sprintf ({"bool"}, config.has_elevated_rights));
+    printf ("    config.pkg_dir             = ");
+    printf_path_exist (config.pkg_dir);
+    printf ("    config.pkg_dir_builtin     = ");
+    printf_path_exist (config.pkg_dir_builtin);
     printf ("\n\n  Restore the default configuration with:");
     pkg_printf ({"blue"}, "  pkg config -reset\n");
     printf ("\n");
@@ -160,9 +129,38 @@ function return_config = pkg_config (new_config)
 endfunction
 
 
+function printf_file_exist (f)
+  if (exist (f, "file") != 2)
+    pkg_printf ({"cross"});
+    printf (" ");
+    pkg_printf ({"red"}, "\"%s\"", f);
+  else
+    pkg_printf ({"check"});
+    printf (" ");
+    printf ("\"%s\"", f);
+  endif
+  printf ("\n");
+endfunction
+
+
+function printf_path_exist (p)
+  if (exist (p, "dir") != 7)
+    pkg_printf ({"cross"});
+    printf (" ");
+    pkg_printf ({"red"}, "\"%s\"", p);
+  else
+    pkg_printf ({"check"});
+    printf (" ");
+    printf ("\"%s\"", p);
+  endif
+  printf ("\n");
+endfunction
+
+
 function config = validate_new_config (config, new_config)
   config_field_names = {"local"; "global"; "arch"; "cache_dir"; ...
-    "color_output"; "emoji_output"; "has_elevated_rights"};
+    "color_output"; "emoji_output"; "has_elevated_rights"; "pkg_dir"; ...
+    "pkg_dir_builtin"};
   scope_field_names = {"archprefix"; "list"; "prefix"};
   if (! isstruct (new_config)
       || ! isequal (sort (fieldnames (new_config)), sort (config_field_names)))
@@ -203,6 +201,14 @@ endfunction
 
 
 function config = get_default_config ()
+
+  ## Since Octave 5.1.0 mandatory.
+  if (exist ("__octave_config_info__", "builtin") == 5)
+    oci = @__octave_config_info__;
+  else
+    oci = @octave_config_info;
+  endif
+
   ## Default (arch)prefix and list paths.
   config.local.list   = tilde_expand (fullfile ("~", ".octave_packages"));
   config.local.prefix = tilde_expand (fullfile ("~", "octave"));
@@ -211,19 +217,26 @@ function config = get_default_config ()
     OCTAVE_HOME (), "share", "octave", "octave_packages");
   config.global.prefix = fullfile ( ...
     OCTAVE_HOME (), "share", "octave", "packages");
-  config.global.archprefix = fullfile ( ...
-    __octave_config_info__ ("libdir"), "octave", "packages");
+  config.global.archprefix = fullfile (oci ("libdir"), "octave", "packages");
+
+  config.pkg_dir = fileparts (mfilename ("fullpath"));
+  config.pkg_dir_builtin = fullfile (oci ("fcnfiledir"), "pkg");
 
   ## Cache directory
   config.cache_dir = fullfile (config.local.prefix, ".cache");
 
   ## Get architecture information.
-  config.arch = [__octave_config_info__("canonical_host_type"), "-", ...
-                 __octave_config_info__("api_version")];
+  config.arch = [oci("canonical_host_type"), "-", oci("api_version")];
 
   ## Experimental colored output.
-  config.color_output = true;
-  config.emoji_output = true;
+
+  if (compare_versions (OCTAVE_VERSION, "5.1.0", ">="))
+    config.color_output = true;
+    config.emoji_output = true;
+  else
+    config.color_output = false;
+    config.emoji_output = false;
+  endif
 
   ## If user is superuser (posix) or the process has elevated rights (Windows),
   ## set global_install to true.
