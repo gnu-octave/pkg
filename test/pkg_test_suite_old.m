@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2018-2021 The Octave Project Developers
+## Copyright (C) 2018-2022 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -23,11 +23,11 @@
 ##
 ########################################################################
 
-############################################################
+########################################################################
 ## Test suite for pkg.m
 ## Tests are organized first by action, and then by options.
 ## All actions should be tested, and ideally all options are tested.
-############################################################
+########################################################################
 
 %!shared old_prefix, old_archprefix, old_local_list, old_global_list, prefix, restorecfg, restorecache, restoreglobalcache, rmtmpdir, mfile_pkg_name, mfile_pkg_tgz
 
@@ -166,6 +166,6 @@
 %!error pkg ("whereis", "myfunc.m")
 %!error pkg ("whereis", "-forge", "myfunc.m")
 
-############################################################
+########################################################################
 ## End of Tests
-############################################################
+########################################################################

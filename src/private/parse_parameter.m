@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2005-2021 The Octave Project Developers
+## Copyright (C) 2021-2022 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -35,7 +35,7 @@
 ## @group
 ## >> params = parse_parameter ({"-nodeps"}, "-nodeps", "image")
 ## params =
-## 
+##
 ##   scalar structure containing the fields:
 ##
 ##     flags =

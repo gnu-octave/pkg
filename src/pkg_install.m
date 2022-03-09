@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2005-2021 The Octave Project Developers
+## Copyright (C) 2005-2022 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -164,7 +164,7 @@ function pkg_install (varargin)
       [~] = rmdir (tmp_dir, "s");
     endif
   end_unwind_protect
- 
+
 endfunction
 
 

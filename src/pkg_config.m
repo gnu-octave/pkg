@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2005-2021 The Octave Project Developers
+## Copyright (C) 2005-2022 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -74,7 +74,7 @@ function return_config = pkg_config (new_config)
     printf ("\n");
     printf ("  pkg configuration:\n");
     printf ("  ------------------\n");
-    
+
     [local_pkg_list, global_pkg_list] = pkg_list ();
     num_pkgs.("local") = numel (local_pkg_list);
     num_pkgs.("global") = numel (global_pkg_list);

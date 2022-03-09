@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2005-2021 The Octave Project Developers
+## Copyright (C) 2005-2022 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -25,12 +25,11 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {} configure_make (@var{desc}, @var{packdir}, @var{verbose})
-## Undocumented internal function.
+## Perform ./configure, make, make install in package "src" directory.
 ## @end deftypefn
 
 function configure_make (desc, packdir, verbose)
 
-  ## Perform ./configure, make, make install in "src".
   if (isfolder (fullfile (packdir, "src")))
     src = fullfile (packdir, "src");
     octave_bindir = __octave_config_info__ ("bindir");

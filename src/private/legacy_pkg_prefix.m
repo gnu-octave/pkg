@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2005-2021 The Octave Project Developers
+## Copyright (C) 2005-2022 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -53,7 +53,7 @@
 ## sets prefix and archprefix to @file{~/my_octave_packages}.
 ## Packages will be installed in this directory.
 ##
-## The location in which to install the architecture dependent files 
+## The location in which to install the architecture dependent files
 ## (archprefix) can be independently specified with an addition argument.
 ## For example:
 ##

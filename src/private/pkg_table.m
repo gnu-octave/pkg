@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2016-2021 The Octave Project Developers
+## Copyright (C) 2016-2022 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -60,7 +60,7 @@ function str = pkg_table (data, column_align)
     data(:,i) = [data(1,i); repmat("-", 1, max_width + 2); ...
                     data(3:end,i)];
   endfor
-  
+
   str = cell (m, 1);
   for i = 1:m
     if (i == 2)
