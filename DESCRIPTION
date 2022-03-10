@@ -1,9 +1,9 @@
 name: pkg
-version: 0.0.1
-date: 2021-04-07
+version: 1.0.0
+date: 2022-03-10
 author: The Octave developers.
 maintainer: Kai T. Ohlhus <k.ohlhus@gmail.com>
-title: The GNU Octave package management tool.
-description: The GNU Octave package management tool.
+title: The GNU Octave enhanced package management tool.
+description: The GNU Octave enhanced package management tool.
 categories: package
-depends: octave (>= 4.0.0)
+depends: octave (>= 4.2.0)
