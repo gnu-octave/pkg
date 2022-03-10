@@ -39,7 +39,7 @@
 
 function pkg_update (varargin)
 
-  pkg_startup_hook ();
+  pkg_config ();
 
   installed_pkgs_lst = pkg_list ();
 

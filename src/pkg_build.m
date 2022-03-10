@@ -55,7 +55,7 @@
 
 function pkg_build (varargin)
 
-  pkg_startup_hook ();
+  pkg_config ();
 
   params = parse_parameter ({"-verbose"}, varargin{:});
   if (! isempty (params.error))

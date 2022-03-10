@@ -35,7 +35,7 @@
 
 function pkg_test (varargin)
 
-  pkg_startup_hook ();
+  pkg_config ();
 
   params = parse_parameter ({}, varargin{:});
   if (! isempty (params.error))

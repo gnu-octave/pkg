@@ -31,7 +31,7 @@
 
 function pkg_rebuild (varargin)
 
-  pkg_startup_hook ();
+  pkg_config ();
 
   if (global_install)
     global_packages = pkg_rebuild_internal (prefix, archprefix, files, verbose);

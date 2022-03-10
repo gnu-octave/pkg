@@ -60,7 +60,7 @@
 
 function varargout = pkg_list (varargin)
 
-  pkg_startup_hook ();
+  pkg_config ();
 
   params = parse_parameter ({"-forge"}, varargin{:});
   if (! isempty (params.error))

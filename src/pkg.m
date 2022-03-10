@@ -126,7 +126,7 @@
 
 function varargout = pkg (varargin)
 
-  pkg_startup_hook ();
+  pkg_config ();
 
   if (nargin < 1)
     varargin = {""};

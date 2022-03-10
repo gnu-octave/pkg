@@ -39,7 +39,7 @@
 
 function pkg_uninstall (varargin)
 
-  pkg_startup_hook ();
+  conf = pkg_config ();
 
   params = parse_parameter ({"-global", "-nodeps"}, varargin{:});
   if (! isempty (params.error))
@@ -49,8 +49,6 @@ function pkg_uninstall (varargin)
   if (isempty (params.in))
     error ("pkg_uninstall: at least one package name is required");
   endif
-
-  conf = pkg_config ();
 
   ## Get the list of installed packages.
   [local_packages, global_packages] = pkg_list ();
