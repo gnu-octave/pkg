@@ -129,12 +129,11 @@ function msg = check_pkg_tool_octaverc_hook_exists ();
   octaverc_hook_exists = false;
   octaverc_hook_same   = false;
   if (exist (octaverc_file, "file") == 2)
-    octaverc_file_contents = fileread (octaverc_file);
-    if (length (regexp (octaverc_file_contents, ...
+    octaverc_file_contents = file2cellstr (octaverc_file);
+    if (length (regexp (strjoin (octaverc_file_contents, "\n"), ...
                         pkg_tool_octaverc_hook_stub)) > 0)
       octaverc_hook_exists = true;
     endif
-    octaverc_file_contents = strsplit (octaverc_file_contents, "\n");
     for i = 1:length (octaverc_file_contents)
       if (strcmp (strtrim (octaverc_file_contents{i}), pkg_tool_octaverc_hook))
         octaverc_hook_same = true;
@@ -142,7 +141,7 @@ function msg = check_pkg_tool_octaverc_hook_exists ();
       endif
     endfor
   else
-    octaverc_file_contents = [];
+    octaverc_file_contents = {};
   endif
 
   if (! octaverc_hook_exists)
