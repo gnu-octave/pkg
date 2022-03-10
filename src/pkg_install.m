@@ -89,7 +89,7 @@
 
 function pkg_install (varargin)
 
-  pkg_config ();
+  config = pkg_config ();
 
   params = parse_parameter ( ...
     {"-forge", "-global", "-local", "-nodeps", "-verbose"}, varargin{:});
@@ -106,66 +106,101 @@ function pkg_install (varargin)
   confirm_recursive_rmdir (false, "local");
 
   local_files = {};
-  tmp_dir = tempname ();
-  unwind_protect
+  if (isempty (config.cache_dir))
+    tmp_dir = tempname ();
+  else
+    tmp_dir = config.cache_dir;
+  endif
 
-    if (params.flags.("-forge"))
-      [urls, local_files] = cellfun ("legacy_forge_download", files,
-                                     "uniformoutput", false);
-      [files, succ] = cellfun ("urlwrite", urls, local_files,
-                               "uniformoutput", false);
-      succ = [succ{:}];
-      if (! all (succ))
-        i = find (! succ, 1);
-        error ("pkg: could not download file %s from URL %s",
-               local_files{i}, urls{i});
+  #####################
+  ## 1. Resolve input
+  #####################
+
+  ## A package can be perfectly identified given three properties:
+  ##
+  ##   1. url: where it was downloaded from
+  ##   2. id:  name@version tuple
+  ##   3. checksum: sha256 sum of the package tarball
+  ##
+  ## With reservations it is possible to deduce all from one property,
+  ## with the help of Octave packages and less effective with Octave Forge.
+
+  ## Is local file?
+  is_local_file = cellfun (@(x) ! isempty (glob (x)), files);
+  items = struct ("url", cellfun (@(x) make_absolute_filename (x), ...
+                                  files(is_local_file), ...
+                                  "UniformOutput", false), ...
+                  "id", "", ...
+                  "checksum", cellfun (@(x) hash ("sha256", fileread (x)), ...
+                                       files(is_local_file), ...
+                                       "UniformOutput", false));
+  files = files(! is_local_file);
+
+  ## Looks like URL?  Otherwise ID.
+  looks_like_url = cellfun (@(x) length (regexp (x, '^\w+://')) > 0, files);
+  items = [items, ...
+           struct("url", files(looks_like_url), "id", "", "checksum", ""), ...
+           struct("url", "", "id", files(! looks_like_url), "checksum", "")];
+
+  ## Complete data from package databases.
+  if (params.flags.("-forge"))
+    resolver = "Octave Forge";
+    tic ();
+    items = db_forge_resolve (items);
+    resolver_time = toc ();
+  else
+    resolver = "Octave Packages";
+    tic ();
+    items = db_packages_resolve (items);
+    resolver_time = toc ();
+  endif
+
+  ## Resolver summary
+  if (params.flags.("-verbose"))
+    printf ("\n  Resolver summary (%s, %.2f seconds)", resolver, resolver_time);
+    printf ("\n  ================\n\n");
+    for i = 1:numel (items)
+      if (! isempty (items(i).id))
+        id = items(i).id;
+      elseif (! isempty (items(i).url))
+        [~, id, ext] = fileparts (items(i).url);
+        id = [id, ext];
+      else
+        id = "???";
       endif
-    else
-      ## If files do not exist, maybe they are not local files.
-      ## Try to download them.
-      not_local_files = cellfun (@(x) isempty (glob (x)), files);
-      if (any (not_local_files))
-        [success, msg] = mkdir (tmp_dir);
-        if (success != 1)
-          error ("pkg: failed to create temporary directory: %s", msg);
-        endif
-
-        for file = files(not_local_files)
-          file = file{1};
-          [~, fname, fext] = fileparts (file);
-          tmp_file = fullfile (tmp_dir, [fname fext]);
-          local_files{end+1} = tmp_file;
-          looks_like_url = regexp (file, '^\w+://');
-          if (looks_like_url)
-            [~, success, msg] = urlwrite (file, local_files{end});
-            if (success != 1)
-              error ("pkg: failed downloading '%s': %s", file, msg);
-            endif
-          else
-            looks_like_pkg_name = regexp (file, '^[\w-]+$');
-            if (looks_like_pkg_name)
-              error (["pkg: file not found: %s.\n" ...
-                      "This looks like an Octave Forge package name." ...
-                      "  Did you mean:\n" ...
-                      "       pkg install -forge %s"], ...
-                     file, file);
-            else
-              error ("pkg: file not found: %s", file);
-            endif
-          endif
-          files{strcmp (files, file)} = local_files{end};
-
-        endfor
+      if (! isempty (items(i).url))
+        from = fileparts (items(i).url);
+      else
+        from = "???";
       endif
-    endif
-    pkg_install_internal (files, params);
+      if (! isempty (items(i).checksum))
+        checksum = items(i).checksum;
+      else
+        checksum = "none";
+      endif
+      deps = "none";
+      printf ("  Install ");
+      pkg_printf ({"blue"}, "%s", id);
+      printf ("\n      from:      %s", from);
+      printf ("\n      checksum:  %s", checksum);
+      printf ("\n      needed by: %s\n", deps);
+    endfor
+  endif
 
-  unwind_protect_cleanup
-    [~] = cellfun ("unlink", local_files);
-    if (exist (tmp_dir, "file"))
-      [~] = rmdir (tmp_dir, "s");
+  return
+
+  ######################################
+  ## 2. Download remote files to cache
+  ######################################
+
+  for i = 1:numel (items)
+    [~, success, msg] = urlwrite (file, local_files{end});
+    if (success != 1)
+      error ("pkg: failed downloading '%s': %s", file, msg);
     endif
-  end_unwind_protect
+  endfor
+
+  pkg_install_internal (files, params);
 
 endfunction
 
