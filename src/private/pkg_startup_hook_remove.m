@@ -24,8 +24,9 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_startup_hook_remove ()
+## @deftypefn {} {} pkg_startup_hook_remove (verbose)
 ## Remove all pkg-tool startup hooks from '~/.octaverc'.
+## If verbose is true, more verbose information is printed.
 ## @end deftypefn
 
 function pkg_startup_hook_remove (verbose)
@@ -45,6 +46,14 @@ function pkg_startup_hook_remove (verbose)
   endif
 
   if (isempty (delete_line_idx))
+    if (verbose)
+      printf ("\n  ");
+      pkg_printf ({"check"});
+      printf (" ");
+      pkg_printf ({"blue"}, "%s", ...
+        "The '~/.octaverc' file did not contain any pkg-tool startup hooks.");
+      printf ("\n\n");
+    endif
     return;
   endif
 
@@ -55,5 +64,14 @@ function pkg_startup_hook_remove (verbose)
   fd = fopen (octaverc_file, "w");
   fprintf (fd, "%s\n", octaverc_file_contents);
   fclose (fd);
+
+  if (verbose)
+    printf ("\n  ");
+    pkg_printf ({"check"});
+    printf (" ");
+    pkg_printf ({"blue"}, "%s", ...
+      "The pkg-tool startup hook was removed from the '~/.octaverc' file.");
+    printf ("\n\n");
+  endif
 
 endfunction

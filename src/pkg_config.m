@@ -64,13 +64,31 @@ function return_config = pkg_config (new_config)
     print_usage ();
   endif
 
-  if (isempty (config) || ((nargin == 1) && (strcmp (new_config, "-reset"))))
+  ## Initialize the pkg-tool.
+  pkg_startup_hook ();
+
+  ## Initialize the configuration.
+  if (isempty (config))
     config = get_default_config ();
-  elseif (nargin == 1)
-    config = validate_new_config (config, new_config);
   endif
 
-  if (nargout)
+  ## Process sub-commands.
+  if (nargin == 1)
+    switch (new_config)
+      case "-add-startup-hook"
+        pkg_startup_hook (true);
+        return;
+      case "-remove-startup-hooks"
+        pkg_startup_hook_remove (true);
+        return;
+      case "-reset"
+        config = get_default_config ();
+      otherwise
+        config = validate_new_config (config, new_config);
+    endswitch
+  endif
+
+  if (nargout || (length ([dbstack]) > 1))
     return_config = config;
   else
     printf ("\n");
