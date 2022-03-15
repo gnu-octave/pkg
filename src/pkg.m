@@ -126,7 +126,7 @@
 
 function varargout = pkg (varargin)
 
-  pkg_config ();
+  [~] = pkg_config ();  # Suppress output to command window.
 
   if (nargin < 1)
     varargin = {""};

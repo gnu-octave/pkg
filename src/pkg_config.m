@@ -86,7 +86,8 @@ function return_config = pkg_config (new_config)
     endswitch
   endif
 
-  if (nargout || (length ([dbstack]) > 1))
+  if (nargout ...
+      || ((length ([dbstack]) > 1) && (! strcmp ([dbstack](2).name, "pkg"))))
     return_config = config;
   else
     printf ("\n");
