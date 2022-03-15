@@ -24,27 +24,30 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn  {} {@var{config} =} pkg_config (@var{new_config})
-## @deftypefnx {} {@var{config} =} pkg_config ("-reset")
+## @deftypefn  {} {@var{config} =} pkg_config ()
+## @deftypefnx {} {} pkg_config (@var{new_config})
+## @deftypefnx {} {} pkg_config ("-reset")
+## @deftypefnx {} {} pkg_config ("-add-startup-hook")
+## @deftypefnx {} {} pkg_config ("-remove-startup-hooks")
 ## Get or set the pkg-tool configuration.
 ##
-## Read the pkg-tool configuration
+## 1. Read the pkg-tool configuration:
 ##
 ## @example
 ## config = pkg_config ()
 ## @end example
 ##
-## Modify the pkg-tool configuration
+## 2. Modify the pkg-tool configuration:
 ##
 ## @example
 ## @group
 ## config = pkg_config ();
-## config.user.prefix = "/some/path";  # Modify the structure
+## config.local.prefix = "/some/path";  # Modify the structure
 ## config = pkg_config (config)
 ## @end group
 ## @end example
 ##
-## Reset the pkg-tool configuration
+## 3. Reset the pkg-tool configuration:
 ##
 ## @example
 ## pkg_config -reset
