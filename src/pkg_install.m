@@ -91,8 +91,9 @@ function pkg_install (varargin)
 
   config = pkg_config ();
 
-  params = parse_parameter ( ...
-    {"-forge", "-global", "-local", "-nodeps", "-verbose"}, varargin{:});
+  params = parse_parameter ({"-force", "-forge", "-global", "-local", ...
+    "-nocache", "-nodeps", "-verbose"}, ...
+    varargin{:});
   if (! isempty (params.error))
     error ("pkg_install: %s\n\n%s\n\n", params.error, help ("pkg_install"));
   endif
@@ -102,19 +103,34 @@ function pkg_install (varargin)
   endif
   files = params.in;
 
-  ## If something goes wrong, many directories have to be removed.
-  confirm_recursive_rmdir (false, "local");
-
-  local_files = {};
-  if (isempty (config.cache_dir))
-    tmp_dir = tempname ();
+  ## Helper function
+  sha256sum = @(x) hash ("sha256", fileread (x));
+  if (ispc ())
+    oct_glob = @__wglob__;
   else
-    tmp_dir = config.cache_dir;
+    oct_glob = @glob;
   endif
 
-  #####################
-  ## 1. Resolve input
-  #####################
+  ## Determine download directory.
+  if (isempty (config.cache_dir) || params.flags.("-nocache"))
+    download_dir = tempname ();
+  else
+    download_dir = config.cache_dir;
+  endif
+
+  ## Create download directory if it does not exist.
+  if (isempty (oct_glob (download_dir)))
+    [status, msg] = mkdir (download_dir);
+    if (status != 1)
+      error ("pkg_install: cannot create download directory '%s': %s\n", ...
+        download_dir, msg);
+    endif
+  endif
+
+
+  ##################################
+  ## 1. Classify and resolve input
+  ##################################
 
   ## A package can be perfectly identified given three properties:
   ##
@@ -125,34 +141,37 @@ function pkg_install (varargin)
   ## With reservations it is possible to deduce all from one property,
   ## with the help of Octave packages and less effective with Octave Forge.
 
-  ## Is local file?
-  is_local_file = cellfun (@(x) ! isempty (glob (x)), files);
-  items = struct ("url", cellfun (@(x) make_absolute_filename (x), ...
-                                  files(is_local_file), ...
-                                  "UniformOutput", false), ...
+  items = struct ("url", repmat({""}, 1, numel (files)), ...
                   "id", "", ...
-                  "checksum", cellfun (@(x) hash ("sha256", fileread (x)), ...
-                                       files(is_local_file), ...
-                                       "UniformOutput", false));
-  files = files(! is_local_file);
+                  "checksum", "");
 
-  ## Looks like URL?  Otherwise ID.
-  looks_like_url = cellfun (@(x) length (regexp (x, '^\w+://')) > 0, files);
-  items = [items, ...
-           struct("url", files(looks_like_url), "id", "", "checksum", ""), ...
-           struct("url", "", "id", files(! looks_like_url), "checksum", "")];
+  for i = 1:numel (files)
+    if (! isempty (oct_glob (files{i})));               # Is local file?
+      items(i).url      = make_absolute_filename (files{i});
+      items(i).checksum = sha256sum (items(i).url);
+    elseif (length (regexp (files{i}, '^\w+://')) > 0)  # Looks like URL?
+      items(i).url = files{i};
+    else
+      items(i).id = files{i};  # Otherwise ID to resolve.
+    endif
+  endfor
 
-  ## Complete data from package databases.
+  ## Resolve (complete) data from package databases.
   if (params.flags.("-forge"))
     resolver = "Octave Forge";
+    forge_hint = ["Tip: avoid the '-forge' flag to search in the larger ", ...
+      "Octave Packages database."];
     tic ();
     items = db_forge_resolve (items);
     resolver_time = toc ();
+    pkg_list = db_forge_list_packages ();
   else
     resolver = "Octave Packages";
+    forge_hint = ""
     tic ();
     items = db_packages_resolve (items);
     resolver_time = toc ();
+    pkg_list = db_packages_list_packages ();
   endif
 
   ## Resolver summary
@@ -187,25 +206,109 @@ function pkg_install (varargin)
     endfor
   endif
 
-  return
-
-  ######################################
-  ## 2. Download remote files to cache
-  ######################################
-
+  ## Resolver sanity check
   for i = 1:numel (items)
-    [~, success, msg] = urlwrite (file, local_files{end});
-    if (success != 1)
-      error ("pkg: failed downloading '%s': %s", file, msg);
+    ## If ID was not resolved to URL, probably the package does not exist:
+    ## suggest an existing one.
+    if (isempty (items(i).url))
+      similar = suggest (items(i).id, pkg_list);
+      if (isempty (similar))
+        error (["pkg_install: no package named '%s' or similar was found.", ...
+          "%s\n"], items(i).id, ["\n\n", forge_hint]);
+      else
+        error (["pkg_install: no package named '%s' was found.\n", ...
+          "Similar package names are:\n\n\t%s\n\n"], items(i).id, ...
+          strjoin (similar, ", "));
+      endif
     endif
   endfor
 
-  pkg_install_internal (files, params);
+
+  ###########################################
+  ## 2. Perform installation in given order
+  ###########################################
+
+  for i = 1:numel (items)
+    if (isempty (items(i).id))
+      [~, id, ext] = fileparts (items(i).url);
+      id = [id, ext];
+    else
+      id = items(i).id;
+    endif
+    printf ("  Install ");
+    pkg_printf ({"blue"}, "%s", id);
+    printf (" \n");
+
+    ## Download file if necessary.
+    if (isempty (oct_glob (items(i).url)))
+      printf ("      ");
+      pkg_printf ({"check"});
+      printf (" ");
+      printf ("downloading ...");
+      new_file = tempname (download_dir);
+      [~, success, msg] = urlwrite (items(i).url, new_file);
+      if (success != 1)
+        error ("pkg_install: failed downloading '%s': %s", items(i).url, msg);
+      endif
+      ## Try to get suffix from URL
+      suffix = regexp (items(i).url, '(?:\.tar)?\.[A-Za-z0-9]+$', "match");
+      if (isempty (suffix))
+        suffix = "";
+      else
+        suffix = suffix{1};
+      endif
+      items(i).url = fullfile (download_dir, [sha256sum(new_file), suffix]);
+      movefile (new_file, items(i).url);
+      printf ("      ");
+      pkg_printf ({"check"});
+      printf (" ");
+      printf ("downloaded\n");
+    else
+      printf ("      ");
+      pkg_printf ({"check"});
+      printf (" ");
+      if (strcmp (fileparts (items(i).url), config.cache_dir))
+        printf ("in cache\n");
+      else
+        printf ("local file\n");
+      endif
+    endif
+
+    ## Test checksum if available.
+    if (! isempty (items(i).checksum))
+      if (strcmp (sha256sum (items(i).url), items(i).checksum))
+        printf ("      ");
+        pkg_printf ({"check"});
+        printf (" ");
+        printf ("installed\n");
+      else
+        printf ("      ");
+        pkg_printf ({"cross"});
+        printf (" ");
+        pkg_printf ({"red"}, ["invalid checksum of '%s'.", ...
+          "\n\tactual:   '%s'\n", ...
+          "\n\texpected: '%s'\n"],
+          items(i).url, sha256sum (items(i).url), items(i).checksum);
+      endif
+    else
+      printf ("      ");
+      pkg_printf ({"warn"});
+      printf (" ");
+      printf ("no checksum available\n");
+    endif
+
+    ## Try to download the file to cache or temporary directory.
+    pkg_install_internal (items(i).url, params);
+    printf ("      ");
+    pkg_printf ({"check"});
+    printf (" ");
+    printf ("installed\n");
+  endfor
 
 endfunction
 
 
-function pkg_install_internal (files, params)
+function pkg_install_internal (pkg_archive, params)
 
   conf = pkg_config ();
   global_install = params.flags.("-global");
@@ -229,116 +332,68 @@ function pkg_install_internal (files, params)
   ## Get the list of installed packages.
   [local_packages, global_packages] = pkg_list ();
 
-  installed_pkgs_lst = {local_packages{:}, global_packages{:}};
-
-  if (global_install)
-    packages = global_packages;
-  else
-    packages = local_packages;
-  endif
-
-  if (ispc ())
-    oct_glob = @__wglob__;
-  else
-    oct_glob = @glob;
-  endif
-
   ## Uncompress the packages and read the DESCRIPTION files.
-  tmpdirs = packdirs = descriptions = {};
   try
-    ## Warn about non existent files.
-    for i = 1:length (files)
-      if (isempty (oct_glob (files{i})))
-        warning ("file %s does not exist", files{i});
-      endif
-    endfor
+    ## Create a temporary directory.
+    tmpdir = tempname ();
+    if (params.flags.("-verbose"))
+      printf ("mkdir (%s)\n", tmpdir);
+    endif
+    [status, msg] = mkdir (tmpdir);
+    if (status != 1)
+      error ("couldn't create temporary directory: %s", msg);
+    endif
 
-    ## Unpack the package files and read the DESCRIPTION files.
-    files = oct_glob (files);
-    packages_to_uninstall = [];
-    for i = 1:length (files)
-      tgz = files{i};
+    ## Uncompress the package.
+    [~, ~, ext] = fileparts (pkg_archive);
+    if (strcmpi (ext, ".zip"))
+      func_uncompress = @unzip;
+    else
+      func_uncompress = @untar;
+    endif
+    if (params.flags.("-verbose"))
+      printf ("%s (%s, %s)\n", func2str (func_uncompress), pkg_archive, tmpdir);
+    endif
+    func_uncompress (pkg_archive, tmpdir);
 
-      if (exist (tgz, "file"))
-        ## Create a temporary directory.
-        tmpdir = tempname ();
-        tmpdirs{end+1} = tmpdir;
-        if (params.flags.("-verbose"))
-          printf ("mkdir (%s)\n", tmpdir);
-        endif
-        [status, msg] = mkdir (tmpdir);
-        if (status != 1)
-          error ("couldn't create temporary directory: %s", msg);
-        endif
+    ## Get the name of the directories produced by tar.
+    [dirlist, err, msg] = readdir (tmpdir);
+    if (err)
+      error ("pkg_install: couldn't read directory produced by tar: %s", msg);
+    endif
+    if (length (dirlist) > 3)
+      error ("pkg_install: bundles of packages are not allowed");
+    endif
 
-        ## Uncompress the package.
-        [~, ~, ext] = fileparts (tgz);
-        if (strcmpi (ext, ".zip"))
-          func_uncompress = @unzip;
-        else
-          func_uncompress = @untar;
-        endif
-        if (params.flags.("-verbose"))
-          printf ("%s (%s, %s)\n", func2str (func_uncompress), tgz, tmpdir);
-        endif
-        func_uncompress (tgz, tmpdir);
+    ## The filename pointed to an uncompressed package to begin with.
+    if (isfolder (pkg_archive))
+      dirlist = {".", "..", pkg_archive};
+    endif
 
-        ## Get the name of the directories produced by tar.
-        [dirlist, err, msg] = readdir (tmpdir);
-        if (err)
-          error ("couldn't read directory produced by tar: %s", msg);
-        endif
-
-        if (length (dirlist) > 3)
-          error ("bundles of packages are not allowed");
-        endif
+    if (exist (pkg_archive, "file") || isfolder (pkg_archive))
+      ## The two first entries of dirlist are "." and "..".
+      if (exist (pkg_archive, "file"))
+        packdir = fullfile (tmpdir, dirlist{3});
+      else
+        packdir = fullfile (pwd (), dirlist{3});
       endif
 
-      ## The filename pointed to an uncompressed package to begin with.
-      if (isfolder (tgz))
-        dirlist = {".", "..", tgz};
-      endif
+      ## Make sure the package contains necessary files.
+      verify_directory (packdir);
 
-      if (exist (tgz, "file") || isfolder (tgz))
-        ## The two first entries of dirlist are "." and "..".
-        if (exist (tgz, "file"))
-          packdir = fullfile (tmpdir, dirlist{3});
-        else
-          packdir = fullfile (pwd (), dirlist{3});
-        endif
-        packdirs{end+1} = packdir;
+      ## Read the DESCRIPTION file.
+      desc = get_description (fullfile (packdir, "DESCRIPTION"));
 
-        ## Make sure the package contains necessary files.
-        verify_directory (packdir);
+      ## Set default installation directory.
+      desc.dir = fullfile (prefix, [desc.name "@" desc.version]);
 
-        ## Read the DESCRIPTION file.
-        filename = fullfile (packdir, "DESCRIPTION");
-        desc = get_description (filename);
-
-        ## Set default installation directory.
-        desc.dir = fullfile (prefix, [desc.name "-" desc.version]);
-
-        ## Set default architectire dependent installation directory.
-        desc.archprefix = fullfile (archprefix, [desc.name "-" desc.version]);
-        desc.archdir    = fullfile (desc.archprefix, conf.arch);
-
-        ## Save desc.
-        descriptions{end+1} = desc;
-
-        ## Are any of the new packages already installed?
-        ## If so we'll remove the old version.
-        for j = 1:length (packages)
-          if (strcmp (packages{j}.name, desc.name))
-            packages_to_uninstall(end+1) = j;
-          endif
-        endfor
-      endif
-    endfor
+      ## Set default architectire dependent installation directory.
+      desc.archprefix = fullfile (archprefix, [desc.name "@" desc.version]);
+      desc.archdir    = fullfile (desc.archprefix, conf.arch);
+    endif
   catch
-    ## Something went wrong, delete tmpdirs.
-    for i = 1:length (tmpdirs)
-      sts = rmdir (tmpdirs{i}, "s");
-    endfor
+    ## Something went wrong, delete tmpdir.
+    [~] = rmdir (tmpdir, "s");
     rethrow (lasterror ());
   end_try_catch
 
@@ -346,166 +401,83 @@ function pkg_install_internal (files, params)
   if (! params.flags.("-nodeps"))
     ok = true;
     error_text = "";
-    for i = 1:length (descriptions)
-      desc = descriptions{i};
-      idx2 = setdiff (1:length (descriptions), i);
-      if (global_install)
-        ## Global installation is not allowed to have dependencies on locally
-        ## installed packages.
-        idx1 = setdiff (1:length (global_packages), packages_to_uninstall);
-        pseudo_installed_packages = {global_packages{idx1}, ...
-                                     descriptions{idx2}};
-      else
-        idx1 = setdiff (1:length (local_packages), packages_to_uninstall);
-        pseudo_installed_packages = {local_packages{idx1}, ...
-                                     global_packages{:}, ...
-                                     descriptions{idx2}};
-      endif
-      bad_deps = get_unsatisfied_deps (desc, pseudo_installed_packages);
-      ## Are there any unsatisfied dependencies?
-      if (! isempty (bad_deps))
-        ok = false;
-        for i = 1:length (bad_deps)
-          dep = bad_deps{i};
-          error_text = [error_text " " desc.name " needs " ...
-                        dep.package " " dep.operator " " dep.version "\n"];
-        endfor
-      endif
-    endfor
+    bad_deps = get_unsatisfied_deps (desc, {local_packages, global_packages});
+    ## Are there any unsatisfied dependencies?
+    if (! isempty (bad_deps))
+      ok = false;
+      for i = 1:length (bad_deps)
+        dep = bad_deps{i};
+        error_text = [error_text " " desc.name " needs " ...
+                      dep.package " " dep.operator " " dep.version "\n"];
+      endfor
+    endif
 
     ## Did we find any unsatisfied dependencies?
     if (! ok)
-      error ("the following dependencies were unsatisfied:\n  %s", error_text);
+      error ("pkg_install: the following dependencies were unsatisfied:\n  %s", error_text);
     endif
   endif
 
-  ## Prepare each package for installation.
+  ## Perform package installation.
   try
-    for i = 1:length (descriptions)
-      desc = descriptions{i};
-      pdir = packdirs{i};
-      prepare_installation (desc, pdir);
-      configure_make (desc, pdir, params.flags.("-verbose"));
-      copy_built_files (desc, pdir, params.flags.("-verbose"));
-    endfor
+    prepare_installation (desc, packdir);
+    configure_make (desc, packdir, params.flags.("-verbose"));
+    copy_built_files (desc, packdir, params.flags.("-verbose"));
+    copy_files (desc, packdir, global_install);
+    create_pkgadddel (desc, packdir, "PKG_ADD", global_install);
+    create_pkgadddel (desc, packdir, "PKG_DEL", global_install);
+    finish_installation (desc, packdir);
+    generate_lookfor_cache (desc);
   catch
-    ## Something went wrong, delete tmpdirs.
-    for i = 1:length (tmpdirs)
-      sts = rmdir (tmpdirs{i}, "s");
-    endfor
-    rethrow (lasterror ());
-  end_try_catch
-
-  ## Uninstall the packages that will be replaced.
-  try
-    for i = packages_to_uninstall
-      if (global_install)
-        pkg_uninstall (global_packages{i}.name, "-nodeps", "-global");
-      else
-        pkg_uninstall (local_packages{i}.name, "-nodeps");
-      endif
-    endfor
-  catch
-    ## Something went wrong, delete tmpdirs.
-    for i = 1:length (tmpdirs)
-      sts = rmdir (tmpdirs{i}, "s");
-    endfor
-    rethrow (lasterror ());
-  end_try_catch
-
-  ## Install each package.
-  try
-    for i = 1:length (descriptions)
-      desc = descriptions{i};
-      pdir = packdirs{i};
-      copy_files (desc, pdir, global_install);
-      create_pkgadddel (desc, pdir, "PKG_ADD", global_install);
-      create_pkgadddel (desc, pdir, "PKG_DEL", global_install);
-      finish_installation (desc, pdir);
-      generate_lookfor_cache (desc);
-    endfor
-  catch
-    ## Something went wrong, delete tmpdirs.
-    for i = 1:length (tmpdirs)
-      sts = rmdir (tmpdirs{i}, "s");
-    endfor
-    for i = 1:length (descriptions)
-      sts = rmdir (descriptions{i}.dir, "s");
-      sts = rmdir (descriptions{i}.archdir, "s");
-    endfor
+    ## Something went wrong, delete tmpdir.
+    [~] = rmdir (tmpdir, "s");
+    [~] = rmdir (desc.dir, "s");
+    [~] = rmdir (desc.archdir, "s");
     rethrow (lasterror ());
   end_try_catch
 
   ## Check if the installed directory is empty.  If it is remove it
   ## from the list.
-  for i = length (descriptions):-1:1
-    if (dirempty (descriptions{i}.dir, {"packinfo", "doc"})
-        && dirempty (descriptions{i}.archdir))
-      warning ("package %s is empty\n", descriptions{i}.name);
-      sts = rmdir (descriptions{i}.dir, "s");
-      sts = rmdir (descriptions{i}.archdir, "s");
-      descriptions(i) = [];
-    endif
-  endfor
+  if (dirempty (desc.dir, {"packinfo", "doc"}) && dirempty (desc.archdir))
+    [~] = rmdir (desc.dir, "s");
+    [~] = rmdir (desc.archdir, "s");
+    error ("pkg_install: package '%s' is empty\n", desc.name);
+  endif
 
   ## Add the packages to the package list.
   try
     if (global_install)
-      idx = setdiff (1:length (global_packages), packages_to_uninstall);
-      global_packages = save_order ({global_packages{idx}, descriptions{:}});
+      global_packages = save_order ({global_packages, desc});
       if (ispc)
         ## On Windows ensure LFN paths are saved rather than 8.3 style paths
         global_packages = standardize_paths (global_packages);
       endif
       global_packages = make_rel_paths (global_packages);
       save (conf.global.list, "global_packages");
-      installed_pkgs_lst = {local_packages{:}, global_packages{:}};
     else
-      idx = setdiff (1:length (local_packages), packages_to_uninstall);
-      local_packages = save_order ({local_packages{idx}, descriptions{:}});
+      local_packages = save_order ({local_packages, desc});
       if (ispc)
         local_packages = standardize_paths (local_packages);
       endif
-      if (! exist (fileparts (conf.local.list), "dir")
-          && ! mkdir (fileparts (conf.local.list)))
-        error ("Octave:pkg:install:local-dir", ...
-               "pkg: Could not create directory for local package configuration");
-      endif
       save (conf.local.list, "local_packages");
-      installed_pkgs_lst = {local_packages{:}, global_packages{:}};
     endif
   catch
-    ## Something went wrong, delete tmpdirs.
-    for i = 1:length (tmpdirs)
-      sts = rmdir (tmpdirs{i}, "s");
-    endfor
-    for i = 1:length (descriptions)
-      sts = rmdir (descriptions{i}.dir, "s");
-    endfor
+    ## Something went wrong, delete tmpdir.
+    [~] = rmdir (tmpdir, "s");
+    [~] = rmdir (desc.dir, "s");
+    [~] = rmdir (desc.archdir, "s");
     if (global_install)
-      printf ("error: couldn't append to %s\n", conf.global.list);
+      printf ("error: couldn't append to '%s'.\n", conf.global.list);
     else
-      printf ("error: couldn't append to %s\n", conf.local.list);
+      printf ("error: couldn't append to '%s'.\n", conf.local.list);
     endif
     rethrow (lasterror ());
   end_try_catch
 
   ## All is well, let's clean up.
-  for i = 1:length (tmpdirs)
-    [status, msg] = rmdir (tmpdirs{i}, "s");
-    if (status != 1 && isfolder (tmpdirs{i}))
-      warning ("couldn't clean up after my self: %s\n", msg);
-    endif
-  endfor
-
-  ## If there is a NEWS file, mention it.
-  ## Check if desc exists too because it's possible to get to this point
-  ## without creating it such as giving an invalid filename for the package
-  if (exist ("desc", "var")
-      && exist (fullfile (desc.dir, "packinfo", "NEWS"), "file"))
-    printf (["For information about changes from previous versions " ...
-             "of the %s package, run 'news %s'.\n"],
-            desc.name, desc.name);
+  [status, msg] = rmdir (tmpdir, "s");
+  if ((status != 1) && isfolder (tmpdir))
+    warning ("couldn't clean up after my self: %s\n", msg);
   endif
 
 endfunction

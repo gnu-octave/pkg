@@ -59,9 +59,7 @@ function items = db_forge_resolve (items)
       "resolve package versions.\nTry without '@version' suffix."]);
     endif
     if (! any (strcmp (name, db_forge_list_packages ())));
-      error (["pkg>db_forge_resolve: package '%s' is not contained in ", ...
-        "'-forge' database.  Try without '-forge' flag to search in all ", ...
-        "databases."], name);
+      continue;
     endif
 
     ## Try to download package's index page.
