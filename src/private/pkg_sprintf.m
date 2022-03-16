@@ -55,6 +55,13 @@ function str = pkg_sprintf (attributes, str, varargin)
           str = "[err]";
           attributes{i} = "red";
         endif
+      case "warn"
+        if (conf.emoji_output)
+          str = "⚠";
+        else
+          str = "[!!!]";
+          attributes{i} = "red";
+        endif
       case "bool"
         if (conf.emoji_output)
           if (logical (str))
