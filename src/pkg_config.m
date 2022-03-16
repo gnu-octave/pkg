@@ -212,11 +212,28 @@ function config = validate_new_config (config, new_config)
     catch
       error ("pkg_config: cannot create local list file '%s'", list_file);
     end_try_catch
-    new_config.local.list = canonicalize_file_name (tilde_expand (list_file));
   endif
+
+  ## Ensure proper paths
+  new_config.local.list        = fix_path (new_config.local.list);
+  new_config.local.prefix      = fix_path (new_config.local.prefix);
+  new_config.local.archprefix  = fix_path (new_config.local.archprefix);
+  new_config.global.list       = fix_path (new_config.global.list);
+  new_config.global.prefix     = fix_path (new_config.global.prefix);
+  new_config.global.archprefix = fix_path (new_config.global.archprefix);
+  new_config.cache_dir         = fix_path (new_config.cache_dir);
 
   config = new_config;
 
+endfunction
+
+
+function p = fix_path (p)
+  p = tilde_expand (p);
+  pp = canonicalize_file_name (p);
+  if (! isempty (pp))
+    p = pp;
+  endif
 endfunction
 
 
