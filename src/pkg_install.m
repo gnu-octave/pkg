@@ -219,7 +219,7 @@ function pkg_install (varargin)
     if (params.flags.("-verbose"))
       printf ("  Install ");
     elseif (i == 1)
-      printf ("\n   Installing:  ");
+      printf ("\n  Installing:  ");
     endif
     pkg_printf ({"blue"}, "%s", id);
     printf ("  ");
@@ -289,7 +289,7 @@ function pkg_install (varargin)
         printf ("      ");
         pkg_printf ({"check"});
         printf (" ");
-        printf ("installed\n");
+        printf ("checksum ok\n");
       else
         printf ("      ");
         pkg_printf ({"cross"});
@@ -338,8 +338,8 @@ function pkg_install_internal (pkg_archive, params)
     endif
   endif
 
-  ## Get the list of installed packages.
-  [local_packages, global_packages] = pkg_list ();
+  ## In case of error directories are removed.
+  confirm_recursive_rmdir (false, "local");
 
   ## Uncompress the packages and read the DESCRIPTION files.
   try
@@ -406,11 +406,14 @@ function pkg_install_internal (pkg_archive, params)
     rethrow (lasterror ());
   end_try_catch
 
+  ## Get the list of installed packages.
+  [local_packages, global_packages] = pkg_list ();
+
   ## Check dependencies.
   if (! params.flags.("-nodeps"))
     ok = true;
     error_text = "";
-    bad_deps = get_unsatisfied_deps (desc, {local_packages, global_packages});
+    bad_deps = get_unsatisfied_deps (desc, [local_packages, global_packages]);
     ## Are there any unsatisfied dependencies?
     if (! isempty (bad_deps))
       ok = false;
@@ -436,7 +439,7 @@ function pkg_install_internal (pkg_archive, params)
     create_pkgadddel (desc, packdir, "PKG_ADD", global_install);
     create_pkgadddel (desc, packdir, "PKG_DEL", global_install);
     finish_installation (desc, packdir);
-    generate_lookfor_cache (desc);
+    ##TODO: generate_lookfor_cache (desc);
   catch
     ## Something went wrong, delete tmpdir.
     [~] = rmdir (tmpdir, "s");
@@ -464,7 +467,7 @@ function pkg_install_internal (pkg_archive, params)
       global_packages = make_rel_paths (global_packages);
       save (conf.global.list, "global_packages");
     else
-      local_packages = save_order ({local_packages, desc});
+      local_packages = save_order ([local_packages, desc]);
       if (ispc)
         local_packages = standardize_paths (local_packages);
       endif
