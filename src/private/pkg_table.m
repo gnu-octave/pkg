@@ -51,12 +51,14 @@ function str = pkg_table (data, column_align)
   column_align = cellfun (@(x) ifelse (x == 'r', '', '-'), ...
     num2cell (column_align), "UniformOutput", false);
 
+  m = m + 1;
+  data{m,1} = "";
   for i = 1:n
     max_width = max (cellfun (@(x) length(x), data(:,i)));
     data{1,i} = sprintf([" %-" num2str(max_width) "s "], data{1,i});
     data(3:end,i) = cellfun (...
       @(x) sprintf([" %", column_align{i}, num2str(max_width), "s "], x), ...
-      data(3:end,i), "UniformOutput", false);
+      data(2:end-1,i), "UniformOutput", false);
     data(:,i) = [data(1,i); repmat("-", 1, max_width + 2); ...
                     data(3:end,i)];
   endfor

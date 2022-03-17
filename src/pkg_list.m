@@ -60,14 +60,12 @@
 
 function varargout = pkg_list (varargin)
 
-  pkg_config ();
+  conf = pkg_config ();
 
   params = parse_parameter ({"-forge"}, varargin{:});
   if (! isempty (params.error))
     error ("pkg_list: %s\n\n%s\n\n", params.error, help ("pkg_list"));
   endif
-
-  conf = pkg_config ();
 
   ## FIXME: Legacy Octave Forge support.
   if (params.flags.("-forge"))
