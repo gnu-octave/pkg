@@ -167,43 +167,11 @@ function pkg_install (varargin)
     pkg_list = db_forge_list_packages ();
   else
     resolver = "Octave Packages";
-    forge_hint = ""
+    forge_hint = "";
     tic ();
     items = db_packages_resolve (items);
     resolver_time = toc ();
     pkg_list = db_packages_list_packages ();
-  endif
-
-  ## Resolver summary
-  if (params.flags.("-verbose"))
-    printf ("\n  Resolver summary (%s, %.2f seconds)", resolver, resolver_time);
-    printf ("\n  ================\n\n");
-    for i = 1:numel (items)
-      if (! isempty (items(i).id))
-        id = items(i).id;
-      elseif (! isempty (items(i).url))
-        [~, id, ext] = fileparts (items(i).url);
-        id = [id, ext];
-      else
-        id = "???";
-      endif
-      if (! isempty (items(i).url))
-        from = fileparts (items(i).url);
-      else
-        from = "???";
-      endif
-      if (! isempty (items(i).checksum))
-        checksum = items(i).checksum;
-      else
-        checksum = "none";
-      endif
-      deps = "none";
-      printf ("  Install ");
-      pkg_printf ({"blue"}, "%s", id);
-      printf ("\n      from:      %s", from);
-      printf ("\n      checksum:  %s", checksum);
-      printf ("\n      needed by: %s\n", deps);
-    endfor
   endif
 
   ## Resolver sanity check
@@ -220,6 +188,47 @@ function pkg_install (varargin)
           "Similar package names are:\n\n\t%s\n\n"], items(i).id, ...
           strjoin (similar, ", "));
       endif
+    endif
+  endfor
+
+  ## Resolver summary
+  if (params.flags.("-verbose"))
+    printf ("\n  Resolver summary (%s, %.2f seconds)", resolver, resolver_time);
+    printf ("\n  ================\n\n");
+  endif
+  for i = 1:numel (items)
+    if (! isempty (items(i).id))
+      id = items(i).id;
+    elseif (! isempty (items(i).url))
+      [~, id, ext] = fileparts (items(i).url);
+      id = [id, ext];
+    else
+      id = "???";
+    endif
+    if (! isempty (items(i).url))
+      from = fileparts (items(i).url);
+    else
+      from = "???";
+    endif
+    if (! isempty (items(i).checksum))
+      checksum = items(i).checksum;
+    else
+      checksum = "none";
+    endif
+    deps = "none";
+    if (params.flags.("-verbose"))
+      printf ("  Install ");
+    elseif (i == 1)
+      printf ("\n   Installing:  ");
+    endif
+    pkg_printf ({"blue"}, "%s", id);
+    printf ("  ");
+    if (params.flags.("-verbose"))
+      printf ("\n      from:      %s", from);
+      printf ("\n      checksum:  %s", checksum);
+      printf ("\n      needed by: %s\n", deps);
+    elseif (i == numel (items))
+      printf ("\n\n");
     endif
   endfor
 
