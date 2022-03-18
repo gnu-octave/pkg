@@ -48,7 +48,10 @@ function items = db_packages_resolve (items, params)
   ##                     https://gnu-octave.github.io/packages/packages/
   [available_packages, checksums, index] = db_packages_list_packages ();
 
+  #################################
   ## Round 1: Improve user input.
+  #################################
+
   for i = 1:numel (items)
 
     ## Complete ID to first version, e.g. "io" to "io@1.2.3".
@@ -114,5 +117,32 @@ function items = db_packages_resolve (items, params)
       endif
     endif
   endfor
+
+  ## Give up if something could not fully be resolved.
+  if (any (cellfun (@isempty, {items.url})))
+    return;
+  endif
+
+
+  ###################################
+  ## Round 2: resolve dependencies.
+  ###################################
+
+  ## Remove duplicates
+  [~, idx] = unique ({items.id}, "stable");
+  items = items(idx);
+
+  ## If not forced installation, unlist already installed packages.
+  if (! params.flags.("-force"))
+    installed_package_ids = pkg_list ();
+    installed_package_ids = strcat ( ...
+      cellfun (@(x) x.name,    installed_package_ids, "UniformOutput", false),
+      "@", ...
+      cellfun (@(x) x.version, installed_package_ids, "UniformOutput", false));
+    
+    for i = 1:numel (installed_package_ids)
+      items(strcmp ({items.id}, installed_package_ids{i})) = [];
+    endfor
+  endif
 
 endfunction
