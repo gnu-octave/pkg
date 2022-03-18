@@ -132,17 +132,142 @@ function items = db_packages_resolve (items, params)
   [~, idx] = unique ({items.id}, "stable");
   items = items(idx);
 
+  ## Get list of packages and treat Octave as such.
+  installed_packages = pkg_list ();
+  installed_package_names    = ["octave", ...
+                                cellfun(@(x) x.name,    installed_packages, ...
+                                       "UniformOutput", false)];
+  installed_package_versions = [OCTAVE_VERSION, ...
+                                cellfun(@(x) x.version, installed_packages, ...
+                                        "UniformOutput", false)];
+
   ## If not forced installation, unlist already installed packages.
   if (! params.flags.("-force"))
-    installed_package_ids = pkg_list ();
-    installed_package_ids = strcat ( ...
-      cellfun (@(x) x.name,    installed_package_ids, "UniformOutput", false),
-      "@", ...
-      cellfun (@(x) x.version, installed_package_ids, "UniformOutput", false));
-    
-    for i = 1:numel (installed_package_ids)
-      items(strcmp ({items.id}, installed_package_ids{i})) = [];
+    for i = 1:numel (installed_package_names)
+      other_id = [installed_package_names{i}, "@", ...
+                  installed_package_versions{i}];
+      items(strcmp ({items.id}, other_id)) = [];
     endfor
   endif
 
+  ## Forcing treats resolver errors as warnings
+  if (params.flags.("-force"))
+    reserr = @warning;
+  else
+    reserr = @error;
+  endif
+
+  ## Add dependencies to resolve, e.g. "octave (>= 4.2.0)"
+  for i = 1:numel (items)
+    items(i).deps = cell (0, 3);  ## {"octave", ">=", "4.2.0"}
+
+    [name, version] = splitid (items(i).id);
+    versions = getfield (getfield (index, name), "versions");
+    deps = {versions(strcmp ({versions.id}, version)).depends.name};
+
+    ## FIXME: ignore dependency "pkg" for now.
+    deps(strcmp (deps, "pkg")) = [];
+
+    for j = 1:numel(deps)
+      [dep_name, dep_op] = strtok (deps{j});
+      dep_op = strtrim (dep_op);
+      if (! isempty (dep_op) && length (dep_op) > 2)
+        dep_op = dep_op(2:end-1);  # remove braces, e.g. "(>= 4.2.0)"
+        [dep_op, dep_ver] = strtok (dep_op);
+        dep_ver = strtrim (dep_ver);
+      else
+        dep_op = "";
+        dep_ver = "";
+      endif
+      items(i).deps(end+1,:) = {dep_name, dep_op, dep_ver};
+    endfor
+  endfor
+
+  ## Iterative resolving.
+  ## FIXME: add new dependencies, regard "-nodeps"
+  ## FIXME: circular dependency detection.
+  max_iter = 100;
+  for j = 1:max_iter
+
+    [stack_package_names, stack_package_versions] = splitid ({items.id});
+
+    for i = 1:numel (items)
+      deps = items(i).deps;
+      done = false (size(deps, 1), 1);
+      do_swap = false;
+      swap = 1:numel (items);
+      for k = 1:size(deps, 1)
+        dep_name = deps{k,1};
+        dep_op = deps{k,2};
+        dep_ver = deps{k,3};
+
+        ## Satisfied by already installed package?
+        idx = strcmp (dep_name, installed_package_names);
+        if (any (idx))
+          if (! isempty (dep_op) && ! isempty (dep_ver))
+            if (compare_versions (installed_package_versions{find(idx, 1)}, ...
+              dep_ver, dep_op))
+              done(k) = true;
+            endif
+          else
+            done(k) = true;
+          endif
+        endif
+
+        ## Satisfied by another package that will be installed?
+        idx = strcmp (dep_name, stack_package_names);
+        if (any (idx))
+          if (! isempty (dep_op) && ! isempty (dep_ver))
+            match = find(idx, 1);
+            if (compare_versions (stack_package_versions{match}, ...
+              dep_ver, dep_op))
+              done(k) = true;
+              ## dependency should be left of item
+              if (match > i)
+                do_swap = true;
+                swap(match) = [];
+                swap = [swap(1:i-1), match, swap(i:end)];
+                break;
+              endif
+            endif
+          else
+            done(k) = true;
+            ## dependency should be left of item
+            if (match > i)
+              do_swap = true;
+              swap(match) = [];
+              swap = [swap(1:i-1), match, swap(i:end)];
+              break;
+            endif
+          endif
+        endif
+
+      endfor
+      items(i).deps(done,:) = [];
+      if (do_swap)
+        items = items(swap);
+        break;
+      endif
+    endfor
+
+    ## All dependencies are resolved =)
+    if (isempty ({items.deps}))
+      return;
+    endif
+
+  endfor
+
+  {items.deps}
+  reserr ("Could not resolve all dependencies");
+
+endfunction
+
+
+function [name, ver] = splitid (id)
+  [name, ver] = strtok (id, "@");
+  if (iscellstr (ver))
+    ver = cellfun (@(x) x(2:end), ver, "UniformOutput", false);
+  else
+    ver = ver(2:end);
+  endif
 endfunction
