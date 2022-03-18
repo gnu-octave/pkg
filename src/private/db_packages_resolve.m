@@ -39,7 +39,7 @@
 ## @end example
 ## @end deftypefn
 
-function items = db_packages_resolve (items)
+function items = db_packages_resolve (items, params)
 
   ## available_packages: Nx1 cell array of strings
   ## checksums:          Nx3 cell array of strings of the format

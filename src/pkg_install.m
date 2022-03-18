@@ -92,7 +92,7 @@ function pkg_install (varargin)
   config = pkg_config ();
 
   params = parse_parameter ({"-force", "-forge", "-global", "-local", ...
-    "-nocache", "-nodeps", "-verbose"}, ...
+    "-nocache", "-nodeps", "-resolve-only", "-verbose"}, ...
     varargin{:});
   if (! isempty (params.error))
     error ("pkg_install: %s\n\n%s\n\n", params.error, help ("pkg_install"));
@@ -169,7 +169,7 @@ function pkg_install (varargin)
     resolver = "Octave Packages";
     forge_hint = "";
     tic ();
-    items = db_packages_resolve (items);
+    items = db_packages_resolve (items, params);
     resolver_time = toc ();
     pkg_list = db_packages_list_packages ();
   endif
@@ -231,6 +231,10 @@ function pkg_install (varargin)
       printf ("\n\n");
     endif
   endfor
+
+  if (params.flags.("-resolve-only"))
+    return;
+  endif
 
 
   ###########################################
