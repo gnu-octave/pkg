@@ -185,7 +185,6 @@ function items = db_packages_resolve (items, params)
 
   ## Iterative resolving.
   ## FIXME: add new dependencies, regard "-nodeps"
-  ## FIXME: circular dependency detection.
   max_iter = 100;
   for j = 1:max_iter
 
@@ -194,8 +193,6 @@ function items = db_packages_resolve (items, params)
     for i = 1:numel (items)
       deps = items(i).deps;
       done = false (size(deps, 1), 1);
-      do_swap = false;
-      swap = 1:numel (items);
       for k = 1:size(deps, 1)
         dep_name = deps{k,1};
         dep_op = deps{k,2};
@@ -221,43 +218,63 @@ function items = db_packages_resolve (items, params)
             match = find(idx, 1);
             if (compare_versions (stack_package_versions{match}, ...
               dep_ver, dep_op))
+              items(match).needed_by{end+1} = items(i).id;
               done(k) = true;
-              ## dependency should be left of item
-              if (match > i)
-                do_swap = true;
-                swap(match) = [];
-                swap = [swap(1:i-1), match, swap(i:end)];
-                break;
-              endif
             endif
           else
+            items(match).needed_by{end+1} = items(i).id;
             done(k) = true;
-            ## dependency should be left of item
-            if (match > i)
-              do_swap = true;
-              swap(match) = [];
-              swap = [swap(1:i-1), match, swap(i:end)];
-              break;
-            endif
           endif
         endif
 
       endfor
       items(i).deps(done,:) = [];
+    endfor
+
+    ## Detect circular dependencies.
+    for i = 1:numel (items)
+      if (exist_circular_dependency (items, i, i))
+        reserr (["pkg_install>db_packages_resolve: Circular dependency ", ...
+          "detected for '%s'."], items(i).id);
+        return;
+      endif
+    endfor
+
+    ## Reorder dependencies to the left (installed first).
+    ## Takes at worst `numel(items)` rounds.
+    for i = 1:numel (items)
+      do_swap = false;
+      swap = 1:numel (items);
+      for j = 1:numel (items)
+        if (isempty (items(j).needed_by))
+          continue;
+        endif
+        id = min (cellfun (@(x) find (strcmp (x, {items.id}), 1), ...
+                           items(j).needed_by));
+        if (id < j)  # Dependency is on the right.
+          do_swap = true;
+          swap(swap == j) = [];
+          swap = [swap(1:id-1), j, swap(id:end)];
+        endif
+      endfor
       if (do_swap)
         items = items(swap);
+      else
         break;
       endif
     endfor
 
     ## All dependencies are resolved =)
     if (isempty ({items.deps}))
+      rmfield (items, "deps");
       return;
     endif
 
   endfor
 
+  ## TODO: verbose resolver problem description.
   {items.deps}
+  rmfield (items, "deps");
   reserr ("Could not resolve all dependencies");
 
 endfunction
@@ -270,4 +287,20 @@ function [name, ver] = splitid (id)
   else
     ver = ver(2:end);
   endif
+endfunction
+
+
+function bool = exist_circular_dependency (items, i, stack)
+  if (isempty (items(i).needed_by))
+    bool = false;
+    return;
+  endif
+  for j = 1:length(items(i).needed_by)
+    id = find (strcmp (items(i).needed_by{j}, {items.id}), 1);
+    if (any (stack == id))
+      bool = true;  ## Circular dependency found!
+      return;
+    endif
+    bool = exist_circular_dependency (items, id, [stack, id]);
+  endfor
 endfunction

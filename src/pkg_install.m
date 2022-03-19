@@ -143,7 +143,8 @@ function pkg_install (varargin)
 
   items = struct ("url", repmat({""}, 1, numel (files)), ...
                   "id", "", ...
-                  "checksum", "");
+                  "checksum", "", ...
+                  "needed_by", cell(1, numel (files)));
 
   for i = 1:numel (files)
     if (! isempty (oct_glob (files{i})));               # Is local file?
@@ -215,7 +216,11 @@ function pkg_install (varargin)
     else
       checksum = "none";
     endif
-    deps = "none";
+    if (isempty (items(i).needed_by))
+      needed_by = "none";
+    else
+      needed_by = strjoin (items(i).needed_by, ", ");
+    endif
     if (params.flags.("-verbose"))
       printf ("  Install ");
     elseif (i == 1)
@@ -226,7 +231,7 @@ function pkg_install (varargin)
     if (params.flags.("-verbose"))
       printf ("\n      from:      %s", from);
       printf ("\n      checksum:  %s", checksum);
-      printf ("\n      needed by: %s\n", deps);
+      printf ("\n      needed by: %s\n", needed_by);
     elseif (i == numel (items))
       printf ("\n\n");
     endif
