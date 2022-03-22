@@ -150,6 +150,11 @@ function items = db_packages_resolve (items, params)
     endfor
   endif
 
+  ## Maybe nothing to do?
+  if (isempty (items))
+    return;
+  endif
+
   ## Forcing treats resolver errors as warnings
   if (params.flags.("-force"))
     reserr = @warning;
@@ -205,9 +210,11 @@ function items = db_packages_resolve (items, params)
             if (compare_versions (installed_package_versions{find(idx, 1)}, ...
               dep_ver, dep_op))
               done(k) = true;
+              continue;
             endif
           else
             done(k) = true;
+            continue;
           endif
         endif
 
@@ -220,10 +227,12 @@ function items = db_packages_resolve (items, params)
               dep_ver, dep_op))
               items(match).needed_by{end+1} = items(i).id;
               done(k) = true;
+              continue;
             endif
           else
             items(match).needed_by{end+1} = items(i).id;
             done(k) = true;
+            continue;
           endif
         endif
 
@@ -265,7 +274,7 @@ function items = db_packages_resolve (items, params)
     endfor
 
     ## All dependencies are resolved =)
-    if (isempty ({items.deps}))
+    if (all (cellfun (@isempty, {items.deps})))
       rmfield (items, "deps");
       return;
     endif

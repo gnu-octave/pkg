@@ -197,6 +197,14 @@ function pkg_install (varargin)
     printf ("\n  Resolver summary (%s, %.2f seconds)", resolver, resolver_time);
     printf ("\n  ================\n\n");
   endif
+  if (isempty (items))
+    printf ("\n  ");
+    pkg_printf ({"check"});
+    printf (" ");
+    printf (["Packages are already installed.", ...
+      "\n\n  See installed packages with 'pkg list' or force package ", ...
+      "installation with 'pkg install -force'.\n\n"]);
+  endif
   for i = 1:numel (items)
     if (! isempty (items(i).id))
       id = items(i).id;
