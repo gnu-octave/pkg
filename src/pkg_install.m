@@ -260,8 +260,14 @@ function pkg_install (varargin)
     endif
     pkg_printf ("  Install <blue>%s</blue> \n", id);
 
-    ## Download file if necessary.
-    if (isempty (oct_glob (items(i).url)))
+    ## Lookup URL: existing local file, file in cache, otherwise download.
+    cache_files = oct_glob (fullfile (download_dir, [items(i).checksum, ".*"]));
+    if (length (oct_glob (items(i).url)) == 1)
+      pkg_printf ("      <check> local file\n");
+    elseif (length (cache_files) == 1)
+      items(i).url = cache_files{1};
+      pkg_printf ("      <check> file in cache\n");
+    else  # Download file.
       pkg_printf ("      <wait> downloading ... ");
       new_file = tempname (download_dir);
       [~, success, msg] = urlwrite (items(i).url, new_file);
@@ -278,13 +284,6 @@ function pkg_install (varargin)
       items(i).url = fullfile (download_dir, [sha256sum(new_file), suffix]);
       movefile (new_file, items(i).url);
       pkg_printf ("\r      <check> downloaded                    \n");
-    else
-      pkg_printf ("      <check> ");
-      if (strcmp (fileparts (items(i).url), config.cache_dir))
-        printf ("in cache\n");
-      else
-        printf ("local file\n");
-      endif
     endif
 
     ## Test checksum if available.
