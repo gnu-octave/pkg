@@ -25,7 +25,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {} pkg_printf (@var{attributes}, @var{str}, @var{varargin})
-## Minimalistic implementation for better looking output.
+## printf with some more features.  See pkg_sprintf for documentation.
 ## @end deftypefn
 
 function pkg_printf (varargin)

@@ -47,12 +47,8 @@ function pkg_startup_hook_remove (verbose)
 
   if (isempty (delete_line_idx))
     if (verbose)
-      printf ("\n  ");
-      pkg_printf ({"check"});
-      printf (" ");
-      pkg_printf ({"blue"}, "%s", ...
-        "The '~/.octaverc' file did not contain any pkg-tool startup hooks.");
-      printf ("\n\n");
+      pkg_printf (["\n  <check> <blue>The '~/.octaverc' file did not ", ...
+        "contain any pkg-tool startup hooks.</blue>\n\n"]);
     endif
     return;
   endif
@@ -66,12 +62,8 @@ function pkg_startup_hook_remove (verbose)
   fclose (fd);
 
   if (verbose)
-    printf ("\n  ");
-    pkg_printf ({"check"});
-    printf (" ");
-    pkg_printf ({"blue"}, "%s", ...
-      "The pkg-tool startup hook was removed from the '~/.octaverc' file.");
-    printf ("\n\n");
+    pkg_printf (["\n  <check> <blue>The pkg-tool startup hook was ", ...
+      "removed from the '~/.octaverc' file.</blue>\n\n"]);
   endif
 
 endfunction

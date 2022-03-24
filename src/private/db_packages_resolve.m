@@ -92,10 +92,7 @@ function items = db_packages_resolve (items, params)
       items(i).checksum = checksums{idx_match, 1};
     else
       if (! strcmp (items(i).checksum, checksums{idx_match, 1}))
-        printf ("      ");
-        pkg_printf ({"warn"});
-        printf (" ");
-        printf (["invalid checksum of '%s'.", ...
+        pkg_printf (["      <warn> invalid checksum of '%s'.", ...
           "\n\tactual:   '%s'\n", ...
           "\n\texpected: '%s'\n"],
           items(i).id, items(i).checksum, checksums{idx_match, 1});
@@ -108,10 +105,7 @@ function items = db_packages_resolve (items, params)
       items(i).id = checksums{idx_match, 3};
     else
       if (! strcmp (items(i).id, checksums{idx_match, 3}))
-        printf ("      ");
-        pkg_printf ({"warn"});
-        printf (" ");
-        printf (["invalid package name and version.\n", ...
+        pkg_printf (["      <warn> invalid package name and version.\n", ...
           "Expected '%s', but found '%s'.\n"], ...
           checksums{idx_match, 3}, items(i).id);
       endif

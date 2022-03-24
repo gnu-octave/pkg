@@ -63,11 +63,7 @@ function pkg_startup_hook (verbose)
     check_pkg_tool_octaverc_hook_exists ());
 
   if (verbose)
-    printf ("\n  ");
-    pkg_printf ({"check"});
-    printf (" ");
-    pkg_printf ({"blue"}, "%s", "All self-tests done.");
-    printf ("\n\n");
+    pkg_printf ("\n  <check> <blue>All self-tests done.</blue>\n\n");
   endif
 
 endfunction
@@ -79,18 +75,10 @@ function verbose_output (verbose, description, msg)
   endif
 
   if (! isempty (msg))
-    printf ("  ");
-    pkg_printf ({"cross"});
-    printf (" ");
-    pkg_printf ({"red"}, "%s", description);
-    printf ("\n");
+    pkg_printf ("  <cross> <red>%s</red>\n", description);
     disp (msg);
   else
-    printf ("  ");
-    pkg_printf ({"check"});
-    printf (" ");
-    printf ("%s", description);
-    printf ("\n");
+    pkg_printf ("  <check> %s\n", description);
   endif
 endfunction
 

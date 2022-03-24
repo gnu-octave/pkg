@@ -24,79 +24,84 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {str = } pkg_sprintf (@var{attributes}, @var{str}, @var{varargin})
-## Minimalistic implementation for better looking output.
+## @deftypefn {} {str = } pkg_sprintf (@var{template}, @var{varargin})
+## sprintf with some more features.
+##
+##  Extra symbols:
+##    <yes>
+##    <check>
+##    <no>
+##    <cross>
+##    <warn>
+##    <wait>
+##
+##  Colored output:
+##    <black>  ...</black>
+##    <red>    ...</red>
+##    <green>  ...</green>
+##    <yellow> ...</yellow>
+##    <blue>   ...</blue>
+##    <magenta>...</magenta>
+##    <cyan>   ...</cyan>
 ## @end deftypefn
 
-function str = pkg_sprintf (attributes, str, varargin)
+function str = pkg_sprintf (template, varargin)
 
   if (nargin < 1)
     print_usage ();
   endif
 
-  if ((nargin < 2) || isempty (str))
-    str = "";
-  endif
-
   conf = pkg_config ();
-  for i = 1:length (attributes)
-    switch (attributes{i})
-      case "check"
-        if (conf.emoji_output)
-          str = "✅";
-        else
-          str = "[ ok]";
-          attributes{i} = "green";
-        endif
-      case "cross"
-        if (conf.emoji_output)
-          str = "❌";
-        else
-          str = "[err]";
-          attributes{i} = "red";
-        endif
-      case "warn"
-        if (conf.emoji_output)
-          str = "⚠";
-        else
-          str = "[!!!]";
-          attributes{i} = "red";
-        endif
-      case "bool"
-        if (conf.emoji_output)
-          if (logical (str))
-            str = "✅";
-          else
-            str = "❌";
-          endif
-        else
-          str = num2str (str);
-        endif
-    endswitch
-  endfor
 
-  if (conf.color_output)
-    ## https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
-    for i = 1:length (attributes)
-      switch (attributes{i})
-        case "black"
-          str = ['\033[38;5;0m', str,'\033[0m'];
-        case "red"
-          str = ['\033[38;5;1m', str,'\033[0m'];
-        case "green"
-          str = ['\033[38;5;2m', str,'\033[0m'];
-        case "yellow"
-          str = ['\033[38;5;3m', str,'\033[0m'];
-        case "blue"
-          str = ['\033[38;5;4m', str,'\033[0m'];
-        case "magenta"
-          str = ['\033[38;5;5m', str,'\033[0m'];
-        case "cyan"
-          str = ['\033[38;5;6m', str,'\033[0m'];
-      endswitch
-    endfor
+  if (conf.emoji_output)
+    template = regexprep (template, '<yes>',   '✅');
+    template = regexprep (template, '<check>', '✅');
+    template = regexprep (template, '<no>',    '❌');
+    template = regexprep (template, '<cross>', '❌');
+    template = regexprep (template, '<warn>',  '⚠');
+    template = regexprep (template, '<wait>',  '⏳');
+  else
+    template = regexprep (template, '<yes>',   '<green>[yes]</green>');
+    template = regexprep (template, '<check>', '<green>[ ok]</green>');
+    template = regexprep (template, '<no>',    '<red>[ no]</red>');
+    template = regexprep (template, '<cross>', '<red>[err]</red>');
+    template = regexprep (template, '<warn>',  '<red>[!!!]</red>');
+    template = regexprep (template, '<wait>',  '<blue>[-->]</blue>');
   endif
 
-  str = sprintf (str, varargin{:});
+  ## https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
+  if (conf.color_output)
+    template = regexprep (template, '<black>',    '\033[38;5;0m');
+    template = regexprep (template, '<red>',      '\033[38;5;1m');
+    template = regexprep (template, '<green>',    '\033[38;5;2m');
+    template = regexprep (template, '<yellow>',   '\033[38;5;3m');
+    template = regexprep (template, '<blue>',     '\033[38;5;4m');
+    template = regexprep (template, '<magenta>',  '\033[38;5;5m');
+    template = regexprep (template, '<cyan>',     '\033[38;5;6m');
+    template = regexprep (template, '</black>',   '\033[0m');
+    template = regexprep (template, '</red>',     '\033[0m');
+    template = regexprep (template, '</green>',   '\033[0m');
+    template = regexprep (template, '</yellow>',  '\033[0m');
+    template = regexprep (template, '</blue>',    '\033[0m');
+    template = regexprep (template, '</magenta>', '\033[0m');
+    template = regexprep (template, '</cyan>',    '\033[0m');
+  else
+    template = regexprep (template, '<black>',    '');
+    template = regexprep (template, '<red>',      '');
+    template = regexprep (template, '<green>',    '');
+    template = regexprep (template, '<yellow>',   '');
+    template = regexprep (template, '<blue>',     '');
+    template = regexprep (template, '<magenta>',  '');
+    template = regexprep (template, '<cyan>',     '');
+    template = regexprep (template, '</black>',   '');
+    template = regexprep (template, '</red>',     '');
+    template = regexprep (template, '</green>',   '');
+    template = regexprep (template, '</yellow>',  '');
+    template = regexprep (template, '</blue>',    '');
+    template = regexprep (template, '</magenta>', '');
+    template = regexprep (template, '</cyan>',    '');
+  endif
+
+  str = sprintf (template, varargin{:});
 
 endfunction

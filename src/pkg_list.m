@@ -151,9 +151,9 @@ function varargout = pkg_list (varargin)
   num_packages = numel (installed_pkgs_lst);
   if (num_packages == 0)
     if (isempty (params.in))
-      pkg_printf ({"red"}, "no packages installed.\n");
+      pkg_printf ("<red>no packages installed.</red>\n");
     else
-      pkg_printf ({"red"}, "package '%s' is not installed.\n", params.in{1});
+      pkg_printf ("<red>package '%s' is not installed</red>.\n", params.in{1});
     endif
     return;
   endif

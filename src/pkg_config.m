@@ -103,14 +103,13 @@ function return_config = pkg_config (new_config)
 
     for scope = {"local", "global"}
       printf ("\n    pkg install -%s  ", scope{1});
-      pkg_printf ({"blue"}, "[%d package(s)]\n", num_pkgs.(scope{1}));
-      printf ("\n      config.%s.list       = ", scope{1});
+      pkg_printf ("<blue>[%d package(s)]</blue>\n\n", num_pkgs.(scope{1}));
+      printf ("      config.%s.list       = ", scope{1});
       printf_file_exist (config.(scope{1}).list);
-      printf ("\n      config.%s.prefix     = ", scope{1});
+      printf ("      config.%s.prefix     = ", scope{1});
       printf_path_exist (config.(scope{1}).prefix);
-      printf ("\n      config.%s.archprefix = ", scope{1});
+      printf ("      config.%s.archprefix = ", scope{1});
       printf_path_exist (archprefix = config.(scope{1}).archprefix);
-      printf ("\n");
     endfor
 
     printf ("\n    Cache  ");
@@ -122,7 +121,7 @@ function return_config = pkg_config (new_config)
     else
       item_count = 0;
     endif
-    pkg_printf ({"blue"}, "[%d item(s)]\n", item_count);
+    pkg_printf ("<blue>[%d item(s)]</blue>\n", item_count);
     printf ("\n      config.cache_dir = ");
     printf_path_exist (config.cache_dir);
 
@@ -132,17 +131,17 @@ function return_config = pkg_config (new_config)
     printf ("  -------------------\n\n");
     printf ("    config.arch                = \"%s\"\n", config.arch);
     printf ("    config.color_output        = %s\n", ...
-      pkg_sprintf ({"bool"}, config.color_output));
+      sprintf_bool (config.color_output));
     printf ("    config.emoji_output        = %s\n", ...
-      pkg_sprintf ({"bool"}, config.emoji_output));
+      sprintf_bool (config.emoji_output));
     printf ("    config.has_elevated_rights = %s\n", ...
-      pkg_sprintf ({"bool"}, config.has_elevated_rights));
+      sprintf_bool (config.has_elevated_rights));
     printf ("    config.pkg_dir             = ");
     printf_path_exist (config.pkg_dir);
     printf ("    config.pkg_dir_builtin     = ");
     printf_path_exist (config.pkg_dir_builtin);
     printf ("\n\n  Restore the default configuration with:");
-    pkg_printf ({"blue"}, "  pkg config -reset\n");
+    pkg_printf ("  <blue>pkg config -reset</blue>\n");
     printf ("\n");
   endif
 
@@ -151,29 +150,28 @@ endfunction
 
 function printf_file_exist (f)
   if (exist (f, "file") != 2)
-    pkg_printf ({"cross"});
-    printf (" ");
-    pkg_printf ({"red"}, "\"%s\"", f);
+    pkg_printf ("<cross> <red>\"%s\"</red>\n", f);
   else
-    pkg_printf ({"check"});
-    printf (" ");
-    printf ("\"%s\"", f);
+    pkg_printf ("<check> \"%s\"\n", f);
   endif
-  printf ("\n");
 endfunction
 
 
 function printf_path_exist (p)
   if (exist (p, "dir") != 7)
-    pkg_printf ({"cross"});
-    printf (" ");
-    pkg_printf ({"red"}, "\"%s\"", p);
+    pkg_printf ("<cross> <red>\"%s\"</red>\n", p);
   else
-    pkg_printf ({"check"});
-    printf (" ");
-    printf ("\"%s\"", p);
+    pkg_printf ("<check> \"%s\"\n", p);
   endif
-  printf ("\n");
+endfunction
+
+
+function str = sprintf_bool (bool)
+  if (bool)
+    str = pkg_sprintf ("<yes>");
+  else
+    str = pkg_sprintf ("<no>");
+  endif
 endfunction
 
 

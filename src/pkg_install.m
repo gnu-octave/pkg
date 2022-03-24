@@ -198,12 +198,10 @@ function pkg_install (varargin)
     printf ("\n  ================\n\n");
   endif
   if (isempty (items))
-    printf ("\n  ");
-    pkg_printf ({"check"});
-    printf (" ");
-    printf (["Packages are already installed.", ...
-      "\n\n  See installed packages with 'pkg list' or force package ", ...
-      "installation with 'pkg install -force'.\n\n"]);
+    pkg_printf (["\n  <check> Packages are already installed.", ...
+      "\n\n  See installed packages with '<blue>pkg list</blue>' or ", ...
+      "force package installation with '<blue>pkg install -force</blue>'.", ...
+      "\n\n"]);
   endif
   for i = 1:numel (items)
     if (! isempty (items(i).id))
@@ -234,8 +232,7 @@ function pkg_install (varargin)
     elseif (i == 1)
       printf ("\n  Installing:  ");
     endif
-    pkg_printf ({"blue"}, "%s", id);
-    printf ("  ");
+    pkg_printf ("<blue>%s</blue>  ", id);
     if (params.flags.("-verbose"))
       printf ("\n      from:      %s", from);
       printf ("\n      checksum:  %s", checksum);
@@ -261,16 +258,11 @@ function pkg_install (varargin)
     else
       id = items(i).id;
     endif
-    printf ("  Install ");
-    pkg_printf ({"blue"}, "%s", id);
-    printf (" \n");
+    pkg_printf ("  Install <blue>%s</blue> \n", id);
 
     ## Download file if necessary.
     if (isempty (oct_glob (items(i).url)))
-      printf ("      ");
-      pkg_printf ({"check"});
-      printf (" ");
-      printf ("downloading ...");
+      pkg_printf ("      <wait> downloading ... ");
       new_file = tempname (download_dir);
       [~, success, msg] = urlwrite (items(i).url, new_file);
       if (success != 1)
@@ -285,14 +277,9 @@ function pkg_install (varargin)
       endif
       items(i).url = fullfile (download_dir, [sha256sum(new_file), suffix]);
       movefile (new_file, items(i).url);
-      printf ("      ");
-      pkg_printf ({"check"});
-      printf (" ");
-      printf ("downloaded\n");
+      pkg_printf ("\r      <check> downloaded                    \n");
     else
-      printf ("      ");
-      pkg_printf ({"check"});
-      printf (" ");
+      pkg_printf ("      <check> ");
       if (strcmp (fileparts (items(i).url), config.cache_dir))
         printf ("in cache\n");
       else
@@ -303,32 +290,21 @@ function pkg_install (varargin)
     ## Test checksum if available.
     if (! isempty (items(i).checksum))
       if (strcmp (sha256sum (items(i).url), items(i).checksum))
-        printf ("      ");
-        pkg_printf ({"check"});
-        printf (" ");
-        printf ("checksum ok\n");
+        pkg_printf ("      <check> checksum ok\n");
       else
-        printf ("      ");
-        pkg_printf ({"cross"});
-        printf (" ");
-        pkg_printf ({"red"}, ["invalid checksum of '%s'.", ...
+        pkg_printf (["      <cross> <red>invalid checksum of '%s'.", ...
           "\n\tactual:   '%s'\n", ...
-          "\n\texpected: '%s'\n"],
+          "\n\texpected: '%s'</red>\n"],
           items(i).url, sha256sum (items(i).url), items(i).checksum);
       endif
     else
-      printf ("      ");
-      pkg_printf ({"warn"});
-      printf (" ");
-      printf ("no checksum available\n");
+      pkg_printf ("      <warn> no checksum available\n");
     endif
 
     ## Try to download the file to cache or temporary directory.
+    pkg_printf ("      <wait> installing ... ");
     pkg_install_internal (items(i).url, params);
-    printf ("      ");
-    pkg_printf ({"check"});
-    printf (" ");
-    printf ("installed\n");
+    pkg_printf ("\r      <check> installed                    \n");
   endfor
 
 endfunction
