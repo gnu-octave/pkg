@@ -275,10 +275,21 @@ function items = db_packages_resolve (items, params)
 
   endfor
 
-  ## TODO: verbose resolver problem description.
-  {items.deps}
+  ## Verbose resolver problem description.
+  pkg_printf (["<red>The following package dependencies could not be ", ...
+    "resolved:</red>\n\n"]);
+  for i = 1:numel (items)
+    if (isempty (items(i).deps))
+      continue;
+    endif
+    pkg_printf ("  <blue>%s</blue> needs:\n", items(i).id);
+    for j = 1:size(deps, 1)
+      printf ("    %s %s %s\n", items(i).deps{j,:});
+    endfor
+  endfor
+  printf ("\n");
   rmfield (items, "deps");
-  reserr ("Could not resolve all dependencies");
+  reserr (pkg_sprintf ("<red>Could not resolve all dependencies.</red>\n"));
 
 endfunction
 
