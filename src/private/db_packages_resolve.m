@@ -272,6 +272,39 @@ function items = db_packages_resolve (items, params)
       return;
     endif
 
+    ## Try to find packages, that satisfies remaining dependencies.
+    if (! params.flags.("-nodeps"))
+      ## Analyze of same package dependencies, e.g. io >= and <=.
+      pkg_to_find.name = "";
+      pkg_to_find.versions = {};
+      pkg_to_find.v = 0;
+      for i = 1:numel (items)
+        ## Nothing to do?
+        if (isempty (items(i).deps))
+          continue;
+        endif
+        ## If no dependency is looked for yet.
+        if (isempty (pkg_to_find.name))
+          pkg_to_find.name = items(i).deps{1,1};
+          if (! isfield (index, pkg_to_find.name))
+            break;  ## Dependency cannot be resolved.
+          endif
+          ## Try to pin a version.
+          pkg_to_find.versions = getfield (getfield ( ...
+            index, pkg_to_find.name), "versions");
+          pkg_to_find.versions = {pkg_to_find.versions.id};
+          for k = 1:length (pkg_to_find.versions)
+            if (compare_versions (x, items(i).deps{1,3}, items(i).deps{1,2}))
+              break;  ## TODO feasible version array!
+            endif
+          endfor
+          pkg_to_find.v = k;
+          continue;
+        endif
+        
+      endfor
+    endif
+
   endfor
 
   ## Verbose resolver problem description.
