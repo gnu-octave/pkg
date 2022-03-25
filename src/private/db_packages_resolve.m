@@ -183,7 +183,6 @@ function items = db_packages_resolve (items, params)
   endfor
 
   ## Iterative resolving.
-  ## FIXME: add new dependencies, regard "-nodeps"
   max_iter = 100;
   for j = 1:max_iter
 
@@ -248,16 +247,16 @@ function items = db_packages_resolve (items, params)
     for i = 1:numel (items)
       do_swap = false;
       swap = 1:numel (items);
-      for j = 1:numel (items)
-        if (isempty (items(j).needed_by))
+      for k = 1:numel (items)
+        if (isempty (items(k).needed_by))
           continue;
         endif
         id = min (cellfun (@(x) find (strcmp (x, {items.id}), 1), ...
-                           items(j).needed_by));
-        if (id < j)  # Dependency is on the right.
+                           items(k).needed_by));
+        if (id < k)  # Dependency is on the right.
           do_swap = true;
-          swap(swap == j) = [];
-          swap = [swap(1:id-1), j, swap(id:end)];
+          swap(swap == k) = [];
+          swap = [swap(1:id-1), k, swap(id:end)];
         endif
       endfor
       if (do_swap)
@@ -267,7 +266,7 @@ function items = db_packages_resolve (items, params)
       endif
     endfor
 
-    ## All dependencies are resolved =)
+    ## All dependencies are resolved?  Then done =)
     if (all (cellfun (@isempty, {items.deps})))
       rmfield (items, "deps");
       return;
