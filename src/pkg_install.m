@@ -189,12 +189,14 @@ function pkg_install (varargin)
         similar = suggest (items(i).id, pkg_list);
       endif
       if (isempty (similar))
-        error (["pkg_install: no package named '%s' or similar was found.", ...
-          "%s\n"], items(i).id, ["\n\n", forge_hint]);
+        error (pkg_sprintf (["pkg_install: no package named ", ...
+          "<blue>'%s'</blue> or similar was found.%s\n"], items(i).id, ...
+          ["\n\n", forge_hint]));
       else
-        error (["pkg_install: no package named '%s' was found.\n", ...
-          "Similar package names are:\n\n\t%s\n\n"], items(i).id, ...
-          strjoin (similar, ", "));
+        error (pkg_sprintf (["pkg_install: no package named ", ...
+          "<blue>'%s'</blue> was found.\n", ...
+          "Similar package names are:\n\n\t<blue>%s</blue>\n\n"], ...
+          items(i).id, strjoin (similar, ", ")));
       endif
     endif
   endfor
@@ -425,7 +427,8 @@ function pkg_install_internal (pkg_archive, params)
 
     ## Did we find any unsatisfied dependencies?
     if (! ok)
-      error ("pkg_install: the following dependencies were unsatisfied:\n  %s", error_text);
+      error (["pkg_install: the following dependencies were unsatisfied:\n", ...
+        "  %s"], error_text);
     endif
   endif
 
