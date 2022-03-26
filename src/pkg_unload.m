@@ -51,11 +51,11 @@ function pkg_unload (varargin)
 
   installed_pkgs_lst = pkg_list ();
   num_packages = numel (installed_pkgs_lst);
-  ## Add inverse dependencies to field "invdeps" of installed_pkgs_lst
-  installed_pkgs_lst = get_inverse_dependencies (installed_pkgs_lst);
 
   ## Read package names and installdirs into a more convenient format.
   pnames = cellfun (@(x) x.name, installed_pkgs_lst, "UniformOutput", false);
+  pvers = cellfun (@(x) x.version, installed_pkgs_lst, "UniformOutput", false);
+  pids = strcat (pnames, "@", pvers);
   pdirs = cellfun (@(x) x.dir, installed_pkgs_lst, "UniformOutput", false);
 
   ## Get the current octave path.
@@ -64,12 +64,19 @@ function pkg_unload (varargin)
   ## Unload package_name1 ...
   dirs = {};
   desc = {};
-  idx = find (ismember (pnames, params.in));
-  missing_pkgs = setdiff (params.in, pnames(idx));
-  if (! isempty (missing_pkgs))
-    missing_pkgs = strjoin (missing_pkgs, " & ");
-    error ("pkg: package(s): %s not installed", missing_pkgs);
-  endif
+  idx = [];
+  for i = 1:length (params.in)
+    if (any (params.in{i} == "@"))
+      idx2 = find (strcmp (pids, params.in{i}));
+    else
+      ## If only name given "pkg unload io", take newest version.
+      idx2 = find (strcmp (pnames, params.in{i}), 1, "last");
+    endif
+    if (! any (idx2))
+      error ("package %s is not installed", params.in{i});
+    endif
+    idx(end + 1) = idx2;
+  endfor
   dirs = pdirs(idx);
   desc = installed_pkgs_lst(idx);
 
@@ -77,6 +84,9 @@ function pkg_unload (varargin)
     ## Check for loaded inverse dependencies of packages to be unloaded.
     ## First create a list of loaded packages.
     jdx = find (cellfun (@(x) x.loaded, installed_pkgs_lst));
+    
+    ## Add inverse dependencies to field "invdeps" of installed_pkgs_lst
+    installed_pkgs_lst = get_inverse_dependencies (installed_pkgs_lst);
 
     ## Exclude packages requested to be unloaded
     jdx = setdiff (jdx, idx);

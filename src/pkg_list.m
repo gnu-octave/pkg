@@ -62,7 +62,7 @@ function varargout = pkg_list (varargin)
 
   conf = pkg_config ();
 
-  params = parse_parameter ({"-forge"}, varargin{:});
+  params = parse_parameter ({"-forge", "-verbose"}, varargin{:});
   if (! isempty (params.error))
     error ("pkg_list: %s\n\n%s\n\n", params.error, help ("pkg_list"));
   endif
@@ -135,10 +135,10 @@ function varargout = pkg_list (varargin)
 
   ## Create unified list without duplicates, local_packages take precedence.
   installed_pkgs_lst = {local_packages{:}, global_packages{:}};
-  installed_names = cellfun (@(x) x.name, installed_pkgs_lst,
-                             "UniformOutput", false);
-  [~, idx] = unique (installed_names, "first");
-  installed_names = installed_names(idx);
+  installed_ids = cellfun (@(x) [x.name, "@", x.version], ...
+                           installed_pkgs_lst, "UniformOutput", false);
+  [~, idx] = unique (installed_ids, "first");
+  installed_ids = installed_ids(idx);
   installed_pkgs_lst = installed_pkgs_lst(idx);
 
   ## Finished if unified list is requested.
@@ -159,17 +159,23 @@ function varargout = pkg_list (varargin)
   endif
 
   ## Create table output.
-  installed_versions = cellfun (@(x) x.version, installed_pkgs_lst,
-                                "UniformOutput", false);
-  installed_dirs = cellfun (@(x) x.dir, installed_pkgs_lst,
-                            "UniformOutput", false);
+  [names, vers] = strtok (installed_ids, "@");
+  vers = cellfun (@(s) pkg_sprintf ("%s", s(2:end)), vers, ...
+                  "UniformOutput", false);
+  installed_ids = strcat (names, vers);
   installed_loaded = cellfun (@(x) ifelse (x.loaded, "loaded", "") , ...
                               installed_pkgs_lst, "UniformOutput", false);
-  columns = [{"Package Name", installed_names{:}}', ...
-             {"Version", installed_versions{:}}', ...
-             {"Status", installed_loaded{:}}', ...
-             {"Installation directory", installed_dirs{:}}'];
-  disp (pkg_table (columns, "rrrl"));
+  columns = [{"Package", names{:}}', ...
+             {"Version", vers{:}}', ...
+             {"Status", installed_loaded{:}}'];
+  if (params.flags.("-verbose"))
+    installed_dirs = cellfun (@(x) x.dir, installed_pkgs_lst,
+                              "UniformOutput", false);
+    columns = [columns, {"Installation directory", installed_dirs{:}}'];
+    disp (pkg_table (columns, "rrrl"));
+  else
+    disp (pkg_table (columns, "rrr"));
+  endif
 
 endfunction
 

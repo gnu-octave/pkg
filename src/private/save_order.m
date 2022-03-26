@@ -58,7 +58,8 @@ function newdesc = save_order (desc)
   idx = [];
   for i = 1 : length (newdesc)
     for j = (i + 1) : length (newdesc)
-      if (strcmp (newdesc{i}.name, newdesc{j}.name))
+      if (strcmp (newdesc{i}.name, newdesc{j}.name) ...
+          && strcmp (newdesc{i}.version, newdesc{j}.version))
         idx(end + 1) = j;
       endif
     endfor

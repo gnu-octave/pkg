@@ -42,9 +42,9 @@ function installed_pkgs_lst = get_inverse_dependencies (installed_pkgs_lst)
       pdep_nm = pdeps{j}.package;
       if (! strcmpi (pdep_nm, "octave"))
         idx = cellfun (@(S) strcmpi (S.name, pdep_nm), installed_pkgs_lst);
-        if (any (idx))
-          installed_pkgs_lst{idx}.invdeps(end+1) = {installed_pkgs_lst{i}.name};
-        endif
+        for k = find (idx)
+          installed_pkgs_lst{k}.invdeps(end+1) = {installed_pkgs_lst{i}.name};
+        endfor
       endif
     endfor
   endfor

@@ -53,139 +53,121 @@ function pkg_uninstall (varargin)
   ## Get the list of installed packages.
   [local_packages, global_packages] = pkg_list ();
   if (params.flags.("-global"))
-    installed_pkgs_lst = {local_packages{:}, global_packages{:}};
+    installed_pkgs_lst = global_packages;
   else
     installed_pkgs_lst = local_packages;
   endif
 
-  num_packages = length (installed_pkgs_lst);
+  ## Read package names and installdirs into a more convenient format.
+  pnames = cellfun (@(x) x.name, installed_pkgs_lst, "UniformOutput", false);
+  pvers = cellfun (@(x) x.version, installed_pkgs_lst, "UniformOutput", false);
+  pids = strcat (pnames, "@", pvers);
+  pdirs = cellfun (@(x) x.dir, installed_pkgs_lst, "UniformOutput", false);
+
   delete_idx = [];
-  for i = 1:num_packages
-    cur_name = installed_pkgs_lst{i}.name;
-    if (any (strcmp (cur_name, params.in)))
-      delete_idx(end+1) = i;
+  for i = 1:length (params.in)
+    if (any (params.in{i} == "@"))
+      idx2 = find (strcmp (pids, params.in{i}));
+    else
+      ## If only name given "pkg uninstall io", take oldest version.
+      idx2 = find (strcmp (pnames, params.in{i}), 1, "first");
     endif
+    if (! any (idx2))
+      error ("package %s is not installed", params.in{i});
+    endif
+    delete_idx(end + 1) = idx2;
   endfor
 
-  ## Are all the packages that should be uninstalled already installed?
-  if (length (delete_idx) != length (params.in))
-    if (params.flags.("-global"))
-      ## Try again for a locally installed package.
-      installed_pkgs_lst = local_packages;
+  ## Compute the packages that will remain installed.
+  idx = setdiff (1:length (installed_pkgs_lst), delete_idx);
+  remaining_packages = {installed_pkgs_lst{idx}};
+  to_delete_packages = {installed_pkgs_lst{delete_idx}};
 
-      num_packages = length (installed_pkgs_lst);
-      delete_idx = [];
-      for i = 1:num_packages
-        cur_name = installed_pkgs_lst{i}.name;
-        if (any (strcmp (cur_name, params.in)))
-          delete_idx(end+1) = i;
-        endif
-      endfor
-      if (length (delete_idx) != length (params.in))
-        ## FIXME: We should have a better error message.
-        warning ("some of the packages you want to uninstall are not installed");
-      endif
-    else
-      ## FIXME: We should have a better error message.
-      warning ("some of the packages you want to uninstall are not installed");
-    endif
-  endif
+  ## Check dependencies.
+  if (! params.flags.("-nodeps"))
+    error_text = "";
+    for i = 1:length (remaining_packages)
+      desc = remaining_packages{i};
+      bad_deps = get_unsatisfied_deps (desc, to_delete_packages, true);
 
-  if (isempty (delete_idx))
-    warning ("no packages will be uninstalled");
-  else
-
-    ## Compute the packages that will remain installed.
-    idx = setdiff (1:num_packages, delete_idx);
-    remaining_packages = {installed_pkgs_lst{idx}};
-    to_delete_packages = {installed_pkgs_lst{delete_idx}};
-
-    ## Check dependencies.
-    if (! params.flags.("-nodeps"))
-      error_text = "";
-      for i = 1:length (remaining_packages)
-        desc = remaining_packages{i};
-        bad_deps = get_unsatisfied_deps (desc, to_delete_packages, true);
-
-        ## Will the uninstallation break any dependencies?
-        if (! isempty (bad_deps))
-          for i = 1:length (bad_deps)
-            dep = bad_deps{i};
-            error_text = [error_text " " desc.name " needs " ...
-                          dep.package " " dep.operator " " dep.version "\n"];
-          endfor
-        endif
-      endfor
-
-      if (! isempty (error_text))
-        error ("the following dependencies where unsatisfied:\n  %s", error_text);
-      endif
-    endif
-
-    ## Delete the directories containing the packages.
-    confirm_recursive_rmdir (false, "local");
-    for i = delete_idx
-      desc = installed_pkgs_lst{i};
-      desc.archdir = fullfile (desc.archprefix, conf.arch);
-      ## If an 'on_uninstall.m' exist, call it!
-      if (exist (fullfile (desc.dir, "packinfo", "on_uninstall.m"), "file"))
-        wd = pwd ();
-        cd (fullfile (desc.dir, "packinfo"));
-        on_uninstall (desc);
-        cd (wd);
-      endif
-      ## Do the actual deletion.
-      if (desc.loaded)
-        rmpath (desc.dir);
-        if (isfolder (desc.archdir))
-          rmpath (desc.archdir);
-        endif
-      endif
-      if (isfolder (desc.dir))
-        ## FIXME: If first call to rmdir fails, then error() will
-        ##        stop further processing of desc.archdir & desc.archprefix.
-        ##        If this is, in fact, correct, then calls should
-        ##        just be shortened to rmdir (...) and let rmdir()
-        ##        report failure and reason for failure.
-        [status, msg] = rmdir (desc.dir, "s");
-        if (status != 1 && isfolder (desc.dir))
-          error ("couldn't delete directory %s: %s", desc.dir, msg);
-        endif
-        [status, msg] = rmdir (desc.archdir, "s");
-        if (status != 1 && isfolder (desc.archdir))
-          error ("couldn't delete directory %s: %s", desc.archdir, msg);
-        endif
-        if (dirempty (desc.archprefix))
-          sts = rmdir (desc.archprefix, "s");
-        endif
-      else
-        warning ("directory %s previously lost", desc.dir);
+      ## Will the uninstallation break any dependencies?
+      if (! isempty (bad_deps))
+        for i = 1:length (bad_deps)
+          dep = bad_deps{i};
+          error_text = [error_text " " desc.name " needs " ...
+                        dep.package " " dep.operator " " dep.version "\n"];
+        endfor
       endif
     endfor
 
-    ## Write a new ~/.octave_packages.
-    if (params.flags.("-global"))
-      if (numel (remaining_packages) == 0)
-        [~] = unlink (conf.global.list);
-      else
-        global_packages = save_order (remaining_packages);
-        if (ispc)
-          ## On Windows ensure LFN paths are saved rather than 8.3 style paths
-          global_packages = standardize_paths (global_packages);
-        endif
-        global_packages = make_rel_paths (global_packages);
-        save (conf.global.list, "global_packages");
+    if (! isempty (error_text))
+      error ("the following dependencies where unsatisfied:\n  %s", error_text);
+    endif
+  endif
+
+  ## Delete the directories containing the packages.
+  confirm_recursive_rmdir (false, "local");
+  for i = delete_idx
+    desc = installed_pkgs_lst{i};
+    desc.archdir = fullfile (desc.archprefix, conf.arch);
+    ## If an 'on_uninstall.m' exist, call it!
+    if (exist (fullfile (desc.dir, "packinfo", "on_uninstall.m"), "file"))
+      wd = pwd ();
+      cd (fullfile (desc.dir, "packinfo"));
+      on_uninstall (desc);
+      cd (wd);
+    endif
+    ## Do the actual deletion.
+    if (desc.loaded)
+      rmpath (desc.dir);
+      if (isfolder (desc.archdir))
+        rmpath (desc.archdir);
+      endif
+    endif
+    if (isfolder (desc.dir))
+      ## FIXME: If first call to rmdir fails, then error() will
+      ##        stop further processing of desc.archdir & desc.archprefix.
+      ##        If this is, in fact, correct, then calls should
+      ##        just be shortened to rmdir (...) and let rmdir()
+      ##        report failure and reason for failure.
+      [status, msg] = rmdir (desc.dir, "s");
+      if (status != 1 && isfolder (desc.dir))
+        error ("couldn't delete directory %s: %s", desc.dir, msg);
+      endif
+      [status, msg] = rmdir (desc.archdir, "s");
+      if (status != 1 && isfolder (desc.archdir))
+        error ("couldn't delete directory %s: %s", desc.archdir, msg);
+      endif
+      if (dirempty (desc.archprefix))
+        sts = rmdir (desc.archprefix, "s");
       endif
     else
-      if (numel (remaining_packages) == 0)
-        [~] = unlink (conf.local.list);
-      else
-        local_packages = save_order (remaining_packages);
-        if (ispc)
-          local_packages = standardize_paths (local_packages);
-        endif
-        save (conf.local.list, "local_packages");
+      warning ("directory %s previously lost", desc.dir);
+    endif
+  endfor
+
+  ## Write a new ~/.octave_packages.
+  if (params.flags.("-global"))
+    if (numel (remaining_packages) == 0)
+      [~] = unlink (conf.global.list);
+    else
+      global_packages = save_order (remaining_packages);
+      if (ispc)
+        ## On Windows ensure LFN paths are saved rather than 8.3 style paths
+        global_packages = standardize_paths (global_packages);
       endif
+      global_packages = make_rel_paths (global_packages);
+      save (conf.global.list, "global_packages");
+    endif
+  else
+    if (numel (remaining_packages) == 0)
+      [~] = unlink (conf.local.list);
+    else
+      local_packages = save_order (remaining_packages);
+      if (ispc)
+        local_packages = standardize_paths (local_packages);
+      endif
+      save (conf.local.list, "local_packages");
     endif
   endif
 

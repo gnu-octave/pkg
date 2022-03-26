@@ -70,31 +70,29 @@ function pkg_load (varargin)
   num_packages = length (installed_pkgs_lst);
 
   ## Read package names and installdirs into a more convenient format.
-  pnames = pdirs = cell (1, num_packages);
-  for i = 1:num_packages
-    pnames{i} = installed_pkgs_lst{i}.name;
-    pdirs{i} = installed_pkgs_lst{i}.dir;
-  endfor
+  pnames = cellfun (@(x) x.name, installed_pkgs_lst, "UniformOutput", false);
+  pvers = cellfun (@(x) x.version, installed_pkgs_lst, "UniformOutput", false);
+  pids = strcat (pnames, "@", pvers);
+  pdirs = cellfun (@(x) x.dir, installed_pkgs_lst, "UniformOutput", false);
 
   idx = [];
   for i = 1:length (params.in)
-    idx2 = find (strcmp (pnames, params.in{i}));
+    if (any (params.in{i} == "@"))
+      idx2 = find (strcmp (pids, params.in{i}));
+    else
+      ## If only name given "pkg load io", take newest version.
+      idx2 = find (strcmp (pnames, params.in{i}), 1, "last");
+    endif
     if (! any (idx2))
       error ("package %s is not installed", params.in{i});
     endif
     idx(end + 1) = idx2;
   endfor
 
-  ## Load the packages, but take care of the ordering of dependencies.
-  load_packages_and_dependencies (idx, ! params.flags.("-nodeps"), installed_pkgs_lst, true);
+  ## Ensure ordering of dependencies before their dependers.
+  idx = determine_load_order (idx, [], ! params.flags.("-nodeps"), ...
+                              installed_pkgs_lst);
 
-endfunction
-
-
-function load_packages_and_dependencies (idx, handle_deps, installed_pkgs_lst,
-                                         global_install)
-
-  idx = load_package_dirs (idx, [], handle_deps, installed_pkgs_lst);
   dirs = {};
   execpath = EXEC_PATH ();
   for i = idx
@@ -134,7 +132,7 @@ function load_packages_and_dependencies (idx, handle_deps, installed_pkgs_lst,
 endfunction
 
 
-function idx = load_package_dirs (lidx, idx, handle_deps, installed_pkgs_lst)
+function idx = determine_load_order (lidx, idx, handle_deps, installed_pkgs_lst)
 
   for i = lidx
     if (isfield (installed_pkgs_lst{i}, "loaded")
@@ -161,8 +159,8 @@ function idx = load_package_dirs (lidx, idx, handle_deps, installed_pkgs_lst)
               endif
             endfor
           endfor
-          idx = load_package_dirs (tmplidx, idx, handle_deps,
-                                 installed_pkgs_lst);
+          idx = determine_load_order (tmplidx, idx, handle_deps,
+                                      installed_pkgs_lst);
         endif
       endif
     endif
