@@ -156,30 +156,9 @@ function items = db_packages_resolve (items, params)
     reserr = @error;
   endif
 
-  ## Add dependencies to resolve, e.g. "octave (>= 4.2.0)"
+  ## Add dependencies to resolve, e.g. {"octave", ">=", "4.2.0"}
   for i = 1:numel (items)
-    items(i).deps = cell (0, 3);  ## {"octave", ">=", "4.2.0"}
-
-    [name, version] = splitid (items(i).id);
-    versions = getfield (getfield (index, name), "versions");
-    deps = {versions(strcmp ({versions.id}, version)).depends.name};
-
-    ## FIXME: ignore dependency "pkg" for now.
-    deps(strcmp (deps, "pkg")) = [];
-
-    for j = 1:numel(deps)
-      [dep_name, dep_op] = strtok (deps{j});
-      dep_op = strtrim (dep_op);
-      if (! isempty (dep_op) && length (dep_op) > 2)
-        dep_op = dep_op(2:end-1);  # remove braces, e.g. "(>= 4.2.0)"
-        [dep_op, dep_ver] = strtok (dep_op);
-        dep_ver = strtrim (dep_ver);
-      else
-        dep_op = "";
-        dep_ver = "";
-      endif
-      items(i).deps(end+1,:) = {dep_name, dep_op, dep_ver};
-    endfor
+    items(i).deps = get_dependencies (items(i), index);
   endfor
 
   ## Iterative resolving.
@@ -277,34 +256,48 @@ function items = db_packages_resolve (items, params)
       ## Analyze of same package dependencies, e.g. io >= and <=.
       pkg_to_find.name = "";
       pkg_to_find.versions = {};
-      pkg_to_find.v = 0;
+      pkg_to_find.v = [];
+
       for i = 1:numel (items)
         ## Nothing to do?
         if (isempty (items(i).deps))
           continue;
         endif
+
         ## If no dependency is looked for yet.
         if (isempty (pkg_to_find.name))
           pkg_to_find.name = items(i).deps{1,1};
           if (! isfield (index, pkg_to_find.name))
             break;  ## Dependency cannot be resolved.
           endif
-          ## Try to pin a version.
           pkg_to_find.versions = getfield (getfield ( ...
             index, pkg_to_find.name), "versions");
           pkg_to_find.versions = {pkg_to_find.versions.id};
-          for k = 1:length (pkg_to_find.versions)
-            if (compare_versions (x, items(i).deps{1,3}, items(i).deps{1,2}))
-              break;  ## TODO feasible version array!
-            endif
-          endfor
-          pkg_to_find.v = k;
-          continue;
+          pkg_to_find.feasible = true (size (pkg_to_find.versions));
         endif
-        
-      endfor
-    endif
 
+        ## Narrow down feasible version of pkg_to_find.
+        for k = find (strcmp (pkg_to_find.name, {items(i).deps{:,1}}))
+          pkg_to_find.feasible = pkg_to_find.feasible & ...
+            cellfun (@(x) compare_versions (x, items(i).deps{k,3}, ...
+              items(i).deps{k,2}), pkg_to_find.versions);
+        endfor
+      endfor
+
+      ## Finally, the newest feasible version is chosen.
+      idx = find (pkg_to_find.feasible, 1);
+      if (isempty (idx))
+        continue;
+      endif
+      new_item_data = getfield (getfield ( ...
+            index, pkg_to_find.name), "versions")(idx);
+      new_item.url = new_item_data.url;
+      new_item.id = [pkg_to_find.name, "@", pkg_to_find.versions{idx}];
+      new_item.checksum = new_item_data.sha256;
+      new_item.needed_by = {};
+      new_item.deps = get_dependencies (new_item, index);
+      items = [new_item, items];
+    endif
   endfor
 
   ## Verbose resolver problem description.
@@ -333,6 +326,31 @@ function [name, ver] = splitid (id)
   else
     ver = ver(2:end);
   endif
+endfunction
+
+
+function dependencies = get_dependencies (item, index)
+  dependencies = cell (0, 3);
+  [name, version] = splitid (item.id);
+  versions = getfield (getfield (index, name), "versions");
+  deps = {versions(strcmp ({versions.id}, version)).depends.name};
+
+  ## FIXME: ignore dependency "pkg" for now.
+  deps(strcmp (deps, "pkg")) = [];
+
+  for j = 1:numel(deps)
+    [dep_name, dep_op] = strtok (deps{j});
+    dep_op = strtrim (dep_op);
+    if (! isempty (dep_op) && length (dep_op) > 2)
+      dep_op = dep_op(2:end-1);  # remove braces, e.g. "(>= 4.2.0)"
+      [dep_op, dep_ver] = strtok (dep_op);
+      dep_ver = strtrim (dep_ver);
+    else
+      dep_op = "";
+      dep_ver = "";
+    endif
+    dependencies(end+1,:) = {dep_name, dep_op, dep_ver};
+  endfor
 endfunction
 
 
