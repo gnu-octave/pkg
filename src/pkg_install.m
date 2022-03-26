@@ -172,7 +172,7 @@ function pkg_install (varargin)
     tic ();
     items = db_packages_resolve (items, params);
     resolver_time = toc ();
-    pkg_list = db_packages_list_packages ();
+    [pkg_list, checksums] = db_packages_list_packages ();
   endif
 
   ## Resolver sanity check
@@ -180,7 +180,14 @@ function pkg_install (varargin)
     ## If ID was not resolved to URL, probably the package does not exist:
     ## suggest an existing one.
     if (isempty (items(i).url))
-      similar = suggest (items(i).id, pkg_list);
+      [name, ver] = strtok (items(i).id, "@");
+      ## If package name correct, but only version wrong: Suggest available versions.
+      if (exist ("checksums", "var") && (sum (strcmp (name, pkg_list)) == 1))
+        similar = {checksums{:,3}};
+        similar = similar(strncmp (similar, [name, "@"], length (name) + 1));
+      else
+        similar = suggest (items(i).id, pkg_list);
+      endif
       if (isempty (similar))
         error (["pkg_install: no package named '%s' or similar was found.", ...
           "%s\n"], items(i).id, ["\n\n", forge_hint]);
