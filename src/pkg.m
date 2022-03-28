@@ -105,9 +105,6 @@
 ## @item describe
 ## Show a short description of installed packages.
 ##
-## @item update
-## Check all installed packages for newer versions.
-##
 ## @item config
 ## Configure the pkg tool.
 ##
@@ -143,8 +140,7 @@ function varargout = pkg (varargin)
     "rebuild", ...
     "test", ...
     "uninstall", ...
-    "unload", ...
-    "update"};
+    "unload"};
 
   ## Create help string.
   help_str = "Call 'pkg' with one of the following actions:\n\n";
@@ -171,6 +167,9 @@ function varargout = pkg (varargin)
       endif
 
     ## Legacy actions
+    case "update"
+      [varargout{1:nargout}] = pkg_install (varargin{2:end});
+
     case "prefix"
       [varargout{1:nargout}] = legacy_pkg_prefix (varargin{2:end});
 
