@@ -167,8 +167,15 @@ function varargout = pkg (varargin)
       endif
 
     ## Legacy actions
-    case "update"
-      [varargout{1:nargout}] = pkg_install (varargin{2:end});
+  case "update"
+      ## No input or only flags.
+      if (nargin == 1 || all (cellfun (@(s) (s(1) == "-"), varargin(2:end))))
+        pkg_names = cellfun (@(idx) idx.name, pkg_list (), ...
+                             "UniformOutput", false);
+        [varargout{1:nargout}] = pkg_install (varargin{2:end}, pkg_names{:});
+      else
+        [varargout{1:nargout}] = pkg_install (varargin{2:end});
+      endif
 
     case "prefix"
       [varargout{1:nargout}] = legacy_pkg_prefix (varargin{2:end});
