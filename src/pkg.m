@@ -103,19 +103,19 @@
 ## List installed packages.
 ##
 ## @item describe
-## Show a short description of installed packages.
+## Describe installed packages.
 ##
 ## @item config
-## Configure the pkg tool.
+## Get or set the pkg-tool configuration.
 ##
 ## @item build
-## Build a binary form of a package or packages.
+## Build platform dependent binary packages from Octave source packages.
 ##
 ## @item rebuild
 ## Rebuild the package database from the installed directories.
 ##
 ## @item test
-## Perform the built-in self tests of a package.
+## Perform the built-in self tests contained in package functions.
 ##
 ## @end table
 ## @seealso{ver, news}

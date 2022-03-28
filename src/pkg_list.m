@@ -25,16 +25,20 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {[@var{local_packages}, @var{global_packages}] =} pkg_list (@var{package_name})
-##
-## Show a list of currently installed packages.
+## List installed packages.
 ##
 ## @example
-## pkg_list ()
+## pkg_list
 ## @end example
 ##
 ## @noindent
-## produces a short report with the package name, version, and installation
-## directory for each installed package.
+## produces a short report with the package name, version, and load status.
+##
+## @example
+## pkg_list -verbose
+## @end example
+##
+## additionally lists installation directory for each installed package.
 ##
 ## Supply a package name to limit reporting to a particular package:
 ##
@@ -42,9 +46,8 @@
 ## pkg_list ("image")
 ## @end example
 ##
-## If a single return argument is requested then @code{pkg_list} returns a
-## cell array where each element is a structure with information on a single
-## package.
+## If a single return argument is given then a cell array is returned, where
+## each element is a structure with information on a single package.
 ##
 ## @example
 ## all_packages = pkg_list ()
@@ -85,7 +88,6 @@ function varargout = pkg_list (varargin)
   end_try_catch
   try
     global_packages = load (conf.global.list).global_packages;
-    global_packages = expand_rel_paths (global_packages);
     if (ispc)
       ## On Windows ensure 8.3 style paths are turned into LFN paths
       global_packages = standardize_paths (global_packages);
@@ -100,11 +102,20 @@ function varargout = pkg_list (varargin)
                            "UniformOutput", false);
     global_names = cellfun (@(x) x.name, global_packages, ...
                             "UniformOutput", false);
+    local_versions = cellfun (@(x) x.version, local_packages, ...
+                           "UniformOutput", false);
+    global_versions = cellfun (@(x) x.version, global_packages, ...
+                            "UniformOutput", false);
     local_idx = false (size (local_names));
     global_idx = false (size (global_names));
     for i = 1:numel (params.in)
-      local_idx |= strcmp (params.in{i}, local_names);
-      global_idx |= strcmp (params.in{i}, global_names);
+      [name, v] = strtok (params.in{i}, "@");
+      local_idx |= strcmp (name, local_names);
+      global_idx |= strcmp (name, global_names);
+      if (! isempty (v))
+        local_idx &= strcmp (v(2:end), local_versions);
+        global_idx &= strcmp (v(2:end), global_versions);
+      endif
     endfor
     local_packages = local_packages(local_idx);
     global_packages = global_packages(global_idx);
@@ -176,21 +187,6 @@ function varargout = pkg_list (varargin)
   else
     disp (pkg_table (columns, "rrr"));
   endif
-
-endfunction
-
-
-function pkg_list = expand_rel_paths (pkg_list)
-
-  ## Prepend location of OCTAVE_HOME to install directories.
-  loc = OCTAVE_HOME ();
-  for i = 1:numel (pkg_list)
-    ## Be sure to only prepend OCTAVE_HOME to pertinent package paths.
-    if (strncmpi (pkg_list{i}.dir, "__OH__", 6))
-      pkg_list{i}.dir = [ loc pkg_list{i}.dir(7:end) ];
-      pkg_list{i}.archprefix = [ loc pkg_list{i}.archprefix(7:end) ];
-    endif
-  endfor
 
 endfunction
 

@@ -24,32 +24,23 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_build (@var{builddir}, @var{tarballs}, @var{verbose})
-## Build a binary form of a package or packages.  The binary file produced
-## will itself be an Octave package that can be installed normally with
-## @code{pkg}.  The form of the command to build a binary package is
+## @deftypefn  {} {} pkg_build (@var{builddir}, @var{tarballs})
+## @deftypefnx {} {} pkg_build (@option{-verbose}, @dots{})
+## Build platform dependent binary packages from Octave source packages.
+##
+## The binary package produced is again an Octave package that can be
+## installed with the pkg-toolkit on specific platforms only.
+##
+## @code{builddir} is the name of a directory where the temporary package
+## installation will be produced and the binary packages will be found.
+##
+## Given the option @option{-verbose} see more verbose output.
+##
+## Example:
 ##
 ## @example
-## pkg build builddir image-1.0.0.tar.gz @dots{}
+## pkg_build builddir image-1.0.0.tar.gz
 ## @end example
-##
-## @noindent
-## where @code{builddir} is the name of a directory where the temporary
-## installation will be produced and the binary packages will be found.
-## The options @option{-verbose} and @option{-nodeps} are respected, while
-## all other options are ignored.
-##
-## Prepare binary packages from Octave source packages.
-##
-## Boils down to (for each in @var{tarballs}):
-##
-## @enumerate
-## @item untar the tarball in @var{builddir};
-##
-## @item build anything necessary (configure and make);
-##
-## @item repackage specifying the build arch in the tarball filename.
-## @end enumerate
 ##
 ## @end deftypefn
 
@@ -100,7 +91,7 @@ function pkg_build (varargin)
       arch_abi = "any-none";
     else
       arch_abi = [pkg_config()].arch;
-      configure_make (desc, build_root, verbose);
+      configure_make (desc, build_root, params.flags.("-verbose"));
       unlink (fullfile (build_root, "src", "configure"));
       unlink (fullfile (build_root, "src", "Makefile"));
     endif

@@ -24,32 +24,34 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {[@var{pkg_desc_list}, @var{flag}] =} pkg_describe (@var{pkgnames}, @var{verbose})
-## Show a short description of installed packages.
+## @deftypefn  {} {} pkg_describe (@var{pkgnames})
+## @deftypefnx {} {} pkg_describe (@option{-verbose}, @dots{})
+## @deftypefnx {} {[@var{desc}, @var{flag}] =} pkg_describe (@dots{})
+## Describe installed packages.
 ##
-## With the option @qcode{"-verbose"} also list functions provided by the
+## With the option @option{-verbose} also list functions provided by the
 ## package.
 ##
-## If one output is requested a cell of structure containing the
-## description and list of functions of each package is returned as
-## output rather than printed on screen:
+## Given an output argument @var{desc}, a cell array of structures containing
+## the package description and a list of package functions is returned without
+## output to the command prompt:
 ##
 ## @example
-## desc = pkg_describe ("secs1d", "image")
+## @var{desc} = pkg_describe ("io", "image")
 ## @end example
 ##
 ## @noindent
 ## If any of the requested packages is not installed, @code{pkg} returns an
-## error, unless a second output is requested:
+## error, unless a second output argument @var{flag} is given:
 ##
 ## @example
-## [desc, flag] = pkg ("describe", "secs1d", "image")
+## [@var{desc}, @var{flag}] = pkg_describe ("not-existing", "io", "image")
 ## @end example
 ##
 ## @noindent
-## @var{flag} will take one of the values @qcode{"Not installed"},
-## @qcode{"Loaded"}, or
-## @qcode{"Not loaded"} for each of the named packages.
+## Each element of @var{flag} will take one of the string values
+## @qcode{"Not installed"}, @qcode{"Loaded"}, or @qcode{"Not loaded"} for
+## each requested package.
 ## @end deftypefn
 
 function [pkg_desc_list_out, flag_out] = pkg_describe (varargin)
@@ -96,7 +98,8 @@ function [pkg_desc_list_out, flag_out] = pkg_describe (varargin)
       pkg_desc_list{name_pos}.version = installed_pkgs_lst{i}.version;
       pkg_desc_list{name_pos}.description = installed_pkgs_lst{i}.description;
       pkg_desc_list{name_pos}.depends = installed_pkgs_lst{i}.depends;
-      pkg_desc_list{name_pos}.provides = parse_pkg_idx (installed_pkgs_lst{i}.dir);
+      pkg_desc_list{name_pos}.provides = read_package_index_file ( ...
+                                           installed_pkgs_lst{i}.dir);
       pkg_desc_list{name_pos}.invdeps = unique (installed_pkgs_lst{i}.invdeps);
 
     endif
@@ -131,15 +134,14 @@ function [pkg_desc_list_out, flag_out] = pkg_describe (varargin)
 endfunction
 
 
-## Read an INDEX file.
-function pkg_idx_struct = parse_pkg_idx (packdir)
+function pkg_idx_struct = read_package_index_file (packdir)
 
   index_file = fullfile (packdir, "packinfo", "INDEX");
 
   if (! exist (index_file, "file"))
-    error ("could not find any INDEX file in directory %s, try 'pkg rebuild all' to generate missing INDEX files", packdir);
+    error (["could not find any INDEX file in directory '%s'.  ", ...
+      "try 'pkg rebuild all' to generate missing INDEX files."], packdir);
   endif
-
 
   [fid, msg] = fopen (index_file, "r");
   if (fid == -1)
@@ -198,7 +200,7 @@ function print_package_description (pkg_name, pkg_ver, pkg_idx_struct,
   printf ("Depends on:\n\t%s\n", pkg_deps);
 
   pkg_invd = strjoin (pkg_invd, "\n\t");
-  printf ("Depended on by:\n\t%s\n", pkg_invd);
+  printf ("Used by:\n\t%s\n", pkg_invd);
 
   printf ("Status:\n\t%s\n", status);
   if (verbose)

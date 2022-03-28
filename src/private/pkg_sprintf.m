@@ -65,7 +65,7 @@ function str = pkg_sprintf (template, varargin)
     template = regexprep (template, '<check>', '<green>[ ok]</green>');
     template = regexprep (template, '<no>',    '<red>[ no]</red>');
     template = regexprep (template, '<cross>', '<red>[err]</red>');
-    template = regexprep (template, '<warn>',  '<red>[!!!]</red>');
+    template = regexprep (template, '<warn>',  '<yellow>[!!!]</yellow>');
     template = regexprep (template, '<wait>',  '<blue>[-->]</blue>');
   endif
 

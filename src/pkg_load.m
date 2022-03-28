@@ -24,33 +24,31 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn  {} {} pkg_load (@var{files})
-## @deftypefnx {} {} pkg_load (@var{files}, @option{-nodeps})
-## Add named packages @var{files} to the Octave load path.
+## @deftypefn  {} {} pkg_load (@var{package})
+## @deftypefnx {} {} pkg_load (@option{-nodeps}, @dots{})
+## Add a package to the Octave load path.
 ##
 ## After loading a package it is possible to use the functions provided by
 ## the package.  For example,
 ##
 ## @example
+## @group
 ## pkg load image
+## pkg load image@atchar{}2.14.0
+## @end group
 ## @end example
 ##
 ## adds the "image"-package to the path.
 ##
 ## Note: When loading a package, @code{pkg} will automatically try to load
 ## any unloaded dependencies as well, unless the @option{-nodeps} flag has
-## been specified.  For example,
+## been specified.
 ##
-## @example
-## pkg load signal
-## @end example
-##
-## adds the "signal"-package and also tries to load its dependency: the
-## "control"-package.  Be aware that the functionality of package(s)
-## loaded will probably be impacted by use of the @option{-nodeps} flag.  Even
-## if necessary dependencies are loaded later, the functionality of top-level
-## packages can still be affected because the optimal loading order may not
-## have been followed.
+## Be aware that the functionality of package(s) loaded will probably be
+## impacted by use of the @option{-nodeps} flag.  Even if necessary
+## dependencies are loaded later, the functionality of top-level packages
+## can still be affected because the optimal loading order may not have been
+##followed.
 ## @end deftypefn
 
 function pkg_load (varargin)
@@ -84,7 +82,9 @@ function pkg_load (varargin)
       idx2 = find (strcmp (pnames, params.in{i}), 1, "last");
     endif
     if (! any (idx2))
-      error ("package %s is not installed", params.in{i});
+      error (pkg_sprintf (["package <blue>'%s'</blue> is not installed.", ...
+        "\n\nRun <blue>'pkg_list'</blue> to see all installed packages ", ...
+        "and versions.\n"], params.in{i}));
     endif
     idx(end + 1) = idx2;
   endfor

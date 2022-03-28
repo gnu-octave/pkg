@@ -25,16 +25,21 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {} pkg_uninstall (@var{params.in})
-## Uninstall a package.  For example,
+## Uninstall a package.
+##
+## Example
 ##
 ## @example
+## @group
 ## pkg uninstall image
+## pkg uninstall image@atchar{}2.14.0
+## @end group
 ## @end example
 ##
 ## @noindent
 ## removes the @code{image} package from the system.  If another installed
 ## package depends on the @code{image} package an error will be issued.
-## The package can be uninstalled anyway by using the @option{-nodeps} option.
+## The package can be uninstalled by force using the @option{-nodeps} option.
 ## @end deftypefn
 
 function pkg_uninstall (varargin)
@@ -73,7 +78,9 @@ function pkg_uninstall (varargin)
       idx2 = find (strcmp (pnames, params.in{i}), 1, "first");
     endif
     if (! any (idx2))
-      error ("package %s is not installed", params.in{i});
+      error (pkg_sprintf (["package <blue>'%s'</blue> is not installed.", ...
+        "\n\nRun <blue>'pkg_list'</blue> to see all installed packages ", ...
+        "and versions.\n"], params.in{i}));
     endif
     delete_idx(end + 1) = idx2;
   endfor

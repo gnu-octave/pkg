@@ -55,8 +55,9 @@ function items = db_forge_resolve (items)
     name = tolower (items(i).id);
 
     if (any (name == "@"));
-      error (["pkg>db_forge_resolve: the '-forge' database cannot ", ...
-      "resolve package versions.\nTry without '@version' suffix."]);
+      error (pkg_sprintf (["pkg>db_forge_resolve: the <blue>'-forge'", ...
+      "</blue> package repository cannot resolve package versions.\n", ...
+      "Try without <blue>'@1.2.3'</blue> suffix.\n"]));
     endif
     if (! any (strcmp (name, db_forge_list_packages ())));
       continue;

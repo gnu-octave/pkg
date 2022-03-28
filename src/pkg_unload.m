@@ -24,15 +24,25 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_unload (@var{files}, @var{handle_deps})
-## Remove a packages from the Octave load path.
+## @deftypefn  {} {} pkg_unload (@var{package})
+## @deftypefnx {} {} pkg_unload (@option{-nodeps}, @dots{})
+## Remove a package from the Octave load path.
+##
+## Example
+##
+## @example
+## @group
+## pkg unload image
+## pkg unload image@atchar{}2.14.0
+## @end group
+## @end example
 ##
 ## After unloading a package it is no longer possible to use any functions
 ## provided by the package.  Trying to unload a package that other loaded
 ## packages still depend on will result in an error; no packages will be
 ## unloaded in this case.
 ##
-## A package can be forcibly unloaded with the @option{-nodeps} flag.
+## A package can be unloaded by force with the @option{-nodeps} flag.
 ## However, the functionality of dependent packages will likely be affected.
 ## @end deftypefn
 
@@ -73,7 +83,9 @@ function pkg_unload (varargin)
       idx2 = find (strcmp (pnames, params.in{i}), 1, "last");
     endif
     if (! any (idx2))
-      error ("package %s is not installed", params.in{i});
+      error (pkg_sprintf (["package <blue>'%s'</blue> is not installed.", ...
+        "\n\nRun <blue>'pkg_list'</blue> to see all installed packages ", ...
+        "and versions.\n"], params.in{i}));
     endif
     idx(end + 1) = idx2;
   endfor
@@ -84,7 +96,7 @@ function pkg_unload (varargin)
     ## Check for loaded inverse dependencies of packages to be unloaded.
     ## First create a list of loaded packages.
     jdx = find (cellfun (@(x) x.loaded, installed_pkgs_lst));
-    
+
     ## Add inverse dependencies to field "invdeps" of installed_pkgs_lst
     installed_pkgs_lst = get_inverse_dependencies (installed_pkgs_lst);
 
@@ -94,6 +106,7 @@ function pkg_unload (varargin)
     lpnames = pnames(jdx);
     p2unload = pnames(idx);
     linvdeps = {};
+    desc = get_inverse_dependencies (desc);
     for i = 1:numel (desc)
       ## Which inverse dependencies depend on this package-to-be-unloaded?
       linvdeps = [linvdeps, get_inv_deps(desc{i}, loaded_pkgs, lpnames){:}];

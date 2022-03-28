@@ -121,10 +121,10 @@ std::string correct(const std::string& word)
 
 DEFUN_DLD (suggest, args, nargout,
            "-*- texinfo -*-\n\
-@deftypefn {} {@var{str} = } suggest (@var{word}, @var{WORDS})\n\
+@deftypefn {} {@var{cstrings} = } suggest (@var{word}, @var{WORDS})\n\
 \n\
 Return most likely corrections of @var{word} from given @var{WORDS}\n\
-or an empty cell if no correction counld be found.\n\
+or an empty cell if no correction could be found.\n\
 @end deftypefn")
 {
   if (args.length () != 2)
@@ -145,7 +145,7 @@ or an empty cell if no correction counld be found.\n\
         results.push_back (item);
 
       // Give all entries the same "weight" of "1".
-      // Weighting not implementated yet.
+      // Weighting not implemented yet.
       dictionary[item] = 1;
     }
 

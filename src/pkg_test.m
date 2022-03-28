@@ -25,11 +25,15 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {} pkg_test (@var{files}, @var{handle_deps})
-## Perform the built-in self tests contained in all functions provided by
-## the named packages.  For example:
+## Perform the built-in self tests contained in package functions.
+##
+## Example
 ##
 ## @example
+## @group
 ## pkg test image
+## pkg test image@atchar{}2.14.0
+## @end group
 ## @end example
 ## @end deftypefn
 
@@ -43,7 +47,7 @@ function pkg_test (varargin)
   endif
 
   if (isempty (params.in))
-    error ("pkg_test: at least one package name is required");
+    error ("pkg_test: at least one package name to test is required\n");
   endif
 
   orig_path = path ();
@@ -52,10 +56,23 @@ function pkg_test (varargin)
     for i = 1:numel (params.in)
       installed_pkgs_lst = pkg_list (params.in{i});
       if (isempty (installed_pkgs_lst))
-        error ("pkg_test: package '%s' is not installed", params.in{i});
+        error (pkg_sprintf (["package <blue>'%s'</blue> is not installed.", ...
+          "\n\nRun <blue>'pkg_list'</blue> to see all installed packages ", ...
+          "and versions.\n"], params.in{i}));
+      elseif (length (installed_pkgs_lst) > 1)
+        matches = cell (1, length (installed_pkgs_lst));
+        for j = 1:length (installed_pkgs_lst)
+          matches{j} = [installed_pkgs_lst{j}.name, "@", ...
+                        installed_pkgs_lst{j}.version];
+        endfor
+        error (pkg_sprintf (["packages <blue>'%s'</blue> have the name ", ...
+          "<blue>'%s'</blue>.\n\nPlease select the package to test.\n"], ...
+          strjoin (matches, ", "),
+          params.in{i}));
       endif
-      printf ("Testing functions in package '%s':\n", params.in{i});
       pkg_load (params.in{i});
+      pkg_printf ("Testing functions in package <blue>'%s'</blue>:\n", ...
+        [installed_pkgs_lst{1}.name, "@", installed_pkgs_lst{1}.version]);
       installed_pkgs_dirs = {installed_pkgs_lst{1}.dir, ...
                              installed_pkgs_lst{1}.archprefix};
       installed_pkgs_dirs = ...

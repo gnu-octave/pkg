@@ -24,44 +24,47 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_install (@var{files})
-## Install named packages.  For example,
+## @deftypefn {} {} pkg_install (@var{pkg_identifier})
+## Install a package.
+##
+## Examples
 ##
 ## @example
-## pkg install image-1.0.0.tar.gz
+## @group
+## pkg install image                # latest package version
+## pkg install image@atchar{}2.14.0         # specific version
+## pkg install image-2.14.0.tar.gz  # downloaded package
+## pkg install pkg install "https://download.url/image-2.14.0.tar.gz"
+## @end group
 ## @end example
 ##
 ## @noindent
-## installs the package found in the file @file{image-1.0.0.tar.gz}.  The
-## file containing the package can be a URL, e.g.,
-##
-## @example
-## pkg install 'http://somewebsite.org/image-1.0.0.tar.gz'
-## @end example
-##
-## @noindent
-## installs the package found in the given URL@.  This
-## requires an internet connection and the cURL library.
+## @emph{Security risk}: Installing or downloading packages from unknown or
+## untrusted URLs is not recommended.  If only a package name is given,
+## the resolved package is downloaded by default from Octave Packages
+## @url{https://gnu-octave.github.io/packages/}.  Octave Packages provides
+## file integrity checks with sha256 checksums.
 ##
 ## @noindent
-## @emph{Security risk}: no verification of the package is performed
-## before the installation.  It has the same security issues as manually
-## downloading the package from the given URL and installing it.
+## @emph{No support}: the GNU Octave project is not responsible for any
+## package.  For support or for reporting bugs for packages you need to
+## contact the package maintainers directly (see for example the
+## @file{DESCRIPTION} file in the package archive).
 ##
-## @noindent
-## @emph{No support}: the GNU Octave community is not responsible for
-## packages installed from foreign sites.  For support or for
-## reporting bugs you need to contact the maintainers of the installed
-## package directly (see the @file{DESCRIPTION} file of the package)
-##
-## The @var{option} variable can contain options that affect the manner
-## in which a package is installed.  These options can be one or more of
+## Various options are supported:
 ##
 ## @table @code
+## @item -verbose
+## The pkg-toolkit will print verbose output of all performed commands.
+##
+## @item -force
+## The pkg-toolkit will perform commands as if run for the first time
+## and override existing package installations.
+##
 ## @item -nodeps
-## The package manager will disable dependency checking.  With this option it
+## The pkg-toolkit will disable dependency checking.  Given this option it
 ## is possible to install a package even when it depends on another package
-## which is not installed on the system.  @strong{Use this option with care.}
+## which is not installed.  @strong{Use this option with care.}
 ##
 ## @item -local
 ## A local installation (package available only to current user) is forced,
@@ -72,18 +75,15 @@
 ## the user doesn't normally have system privileges.
 ##
 ## @item -forge
-## Install a package directly from the Octave Forge repository.  This
+## @emph{Legacy}: Resolve and install a named package from Octave Forge
+## @url{https://octave.sourceforge.io/} instead of Octave Packages.  This
 ## requires an internet connection and the cURL library.
 ##
 ## @emph{Security risk}: no verification of the package is performed
-## before the installation.  There are no signature for packages, or
+## before the installation.  There are no signatures for packages, or
 ## checksums to confirm the correct file was downloaded.  It has the
 ## same security issues as manually downloading the package from the
 ## Octave Forge repository and installing it.
-##
-## @item -verbose
-## The package manager will print the output of all commands as
-## they are performed.
 ## @end table
 ## @end deftypefn
 
@@ -99,7 +99,10 @@ function pkg_install (varargin)
   endif
 
   if (isempty (params.in))
-    error ("pkg_install: at least one package name is required");
+    error (pkg_sprintf (["pkg_install: at least one package name is ", ...
+      "required.\n\n", ...
+      "Find <magenta>Octave Packages</magenta> online at:\n\n\t", ...
+      "<blue>https://gnu-octave.github.io/packages/</blue>\n\n"]));
   endif
   files = params.in;
 
@@ -181,7 +184,8 @@ function pkg_install (varargin)
     ## suggest an existing one.
     if (isempty (items(i).url))
       [name, ver] = strtok (items(i).id, "@");
-      ## If package name correct, but only version wrong: Suggest available versions.
+      ## If package name correct, but only version wrong:
+      ## Suggest available versions.
       if (exist ("checksums", "var") && (sum (strcmp (name, pkg_list)) == 1))
         similar = {checksums{:,3}};
         similar = similar(strncmp (similar, [name, "@"], length (name) + 1));
@@ -236,18 +240,20 @@ function pkg_install (varargin)
     else
       needed_by = strjoin (items(i).needed_by, ", ");
     endif
-    if (params.flags.("-verbose"))
-      printf ("  Install ");
-    elseif (i == 1)
-      printf ("\n  Installing:  ");
-    endif
-    pkg_printf ("<blue>%s</blue>  ", id);
-    if (params.flags.("-verbose"))
-      printf ("\n      from:      %s", from);
-      printf ("\n      checksum:  %s", checksum);
-      printf ("\n      needed by: %s\n", needed_by);
-    elseif (i == numel (items))
-      printf ("\n\n");
+    if (params.flags.("-verbose") || (numel (items) > 1))
+      if (params.flags.("-verbose"))
+        printf ("  Install ");
+      elseif (i == 1)
+        printf ("\n  Installing:  ");
+      endif
+      pkg_printf ("<blue>%s</blue>  ", id);
+      if (params.flags.("-verbose"))
+        printf ("\n      from:      %s", from);
+        printf ("\n      checksum:  %s", checksum);
+        printf ("\n      needed by: %s\n", needed_by);
+      elseif (i == numel (items))
+        printf ("\n\n");
+      endif
     endif
   endfor
 
@@ -397,7 +403,7 @@ function pkg_install_internal (pkg_archive, params)
       ## Set default installation directory.
       desc.dir = fullfile (prefix, [desc.name "@" desc.version]);
 
-      ## Set default architectire dependent installation directory.
+      ## Set default architecture dependent installation directory.
       desc.archprefix = fullfile (archprefix, [desc.name "@" desc.version]);
       desc.archdir    = fullfile (desc.archprefix, conf.arch);
     endif
@@ -764,11 +770,11 @@ function copy_files (desc, packdir, global_install)
   endif
 
   packinfo_copy_file ("DESCRIPTION", "required", packdir, packinfo, desc, octfiledir);
-  packinfo_copy_file ("COPYING", "required", packdir, packinfo, desc, octfiledir);
-  packinfo_copy_file ("CITATION", "optional", packdir, packinfo, desc, octfiledir);
-  packinfo_copy_file ("NEWS", "optional", packdir, packinfo, desc, octfiledir);
-  packinfo_copy_file ("ONEWS", "optional", packdir, packinfo, desc, octfiledir);
-  packinfo_copy_file ("ChangeLog", "optional", packdir, packinfo, desc, octfiledir);
+  packinfo_copy_file ("COPYING",     "required", packdir, packinfo, desc, octfiledir);
+  packinfo_copy_file ("CITATION",    "optional", packdir, packinfo, desc, octfiledir);
+  packinfo_copy_file ("NEWS",        "optional", packdir, packinfo, desc, octfiledir);
+  packinfo_copy_file ("ONEWS",       "optional", packdir, packinfo, desc, octfiledir);
+  packinfo_copy_file ("ChangeLog",   "optional", packdir, packinfo, desc, octfiledir);
 
   ## Is there an INDEX file to copy or should we generate one?
   index_file = fullfile (packdir, "INDEX");
@@ -821,11 +827,11 @@ function packinfo_copy_file (filename, requirement, packdir, packinfo, desc, oct
 endfunction
 
 
+function write_index (desc, dir, index_file, global_install)
 ## Create an INDEX file for a package that doesn't provide one.
 ##   'desc'  describes the package.
 ##   'dir'   is the 'inst' directory in temporary directory.
 ##   'index_file' is the name (including path) of resulting INDEX file.
-function write_index (desc, dir, index_file, global_install)
 
   ## Get names of functions in dir
   [files, err, msg] = readdir (dir);

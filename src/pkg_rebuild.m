@@ -25,8 +25,9 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {@var{descriptions} =} pkg_rebuild (@var{prefix}, @var{archprefix}, @var{files}, @var{verbose})
-## Rebuild the package database from the installed directories.  This can
-## be used in cases where the package database has been corrupted.
+## Rebuild the package database from the installed directories.
+##
+## This can be used in cases where the package database has been corrupted.
 ## @end deftypefn
 
 function pkg_rebuild (varargin)

@@ -26,9 +26,9 @@
 ## -*- texinfo -*-
 ## @deftypefn  {} {@var{config} =} pkg_config ()
 ## @deftypefnx {} {} pkg_config (@var{new_config})
-## @deftypefnx {} {} pkg_config ("-reset")
-## @deftypefnx {} {} pkg_config ("-add-startup-hook")
-## @deftypefnx {} {} pkg_config ("-remove-startup-hooks")
+## @deftypefnx {} {} pkg_config (@option{-reset})
+## @deftypefnx {} {} pkg_config (@option{-add-startup-hook})
+## @deftypefnx {} {} pkg_config (@option{-remove-startup-hooks})
 ## Get or set the pkg-tool configuration.
 ##
 ## 1. Read the pkg-tool configuration:
@@ -52,6 +52,21 @@
 ## @example
 ## pkg_config -reset
 ## @end example
+##
+## 4. Add or remove startup hook in @file{octaverc}-file:
+##
+## @example
+## @group
+## pkg_config -add-startup-hook
+## pkg_config -remove-startup-hooks
+## @end group
+## @end example
+##
+## By default, Octave is equipped with a builtin pkg-toolkit.  To override
+## the builtin pkg-toolkit and the builtin @code{pkg}-command, in the
+## @file{octaverc}-file a line of code is added to ensure precedence
+## at each start of an Octave session.  See the documentation about Octave
+## startup files for more information.
 ## @end deftypefn
 
 function return_config = pkg_config (new_config)
