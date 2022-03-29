@@ -25,7 +25,11 @@
 
 function ci_test ()
 
-  ## Call all availble tests
-  test ("pkg_test_suite_old");
+  ## Call old pkg-tool tests
+  [~, ~, nfail] = test ("pkg_test_suite_old");
+  if (nfail > 0)
+    test ("pkg_test_suite_old", "verbose");
+    exit (-1);
+  endif
 
 endfunction
