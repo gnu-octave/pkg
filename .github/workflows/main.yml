@@ -135,4 +135,4 @@ jobs:
             --env="GRANT_SUDO=yes" \
             --volume="$(pwd):/home/jovyan/pkg:rw" \
             ${{ matrix.image }}:${{ matrix.version }} \
-            octave-cli --eval "cd test; ci_test();"
+            octave-cli --eval "cd /home/jovyan/pkg/test; ci_test();"

@@ -25,11 +25,22 @@
 
 function ci_test ()
 
+  c_red    = '\033[38;5;1m';
+  c_green  = '\033[38;5;2m';
+  c_normal = '\033[0m';
+
+  ## Configure pkg-tool
+  pkg_config
+
   ## Call old pkg-tool tests
   [~, ~, nfail] = test ("pkg_test_suite_old");
   if (nfail > 0)
+    printf ([c_red, "FAILED: pkg_test_suite_old", c_normal]);
     test ("pkg_test_suite_old", "verbose");
+    printf ([c_red, "FAILED: pkg_test_suite_old", c_normal]);
     exit (-1);
+  else
+    printf ([green, "PASSED: pkg_test_suite_old", c_normal])
   endif
 
 endfunction
