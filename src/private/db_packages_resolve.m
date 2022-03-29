@@ -340,6 +340,9 @@ endfunction
 function dependencies = get_dependencies (item, index)
   dependencies = cell (0, 3);
   [name, version] = splitid (item.id);
+  if (! isfield (index, name))
+    return;
+  endif
   versions = getfield (getfield (index, name), "versions");
   deps = {versions(strcmp ({versions.id}, version)).depends.name};
 
