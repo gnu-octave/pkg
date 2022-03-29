@@ -62,6 +62,9 @@ function pkg_unload (varargin)
   installed_pkgs_lst = pkg_list ();
   num_packages = numel (installed_pkgs_lst);
 
+  ## Add inverse dependencies to field "invdeps" of installed_pkgs_lst
+  installed_pkgs_lst = get_inverse_dependencies (installed_pkgs_lst);
+
   ## Read package names and installdirs into a more convenient format.
   pnames = cellfun (@(x) x.name, installed_pkgs_lst, "UniformOutput", false);
   pvers = cellfun (@(x) x.version, installed_pkgs_lst, "UniformOutput", false);
@@ -84,7 +87,7 @@ function pkg_unload (varargin)
     endif
     if (! any (idx2))
       error (pkg_sprintf (["package <blue>'%s'</blue> is not installed.", ...
-        "\n\nRun <blue>'pkg_list'</blue> to see all installed packages ", ...
+        "\n\nRun <blue>'pkg list'</blue> to see all installed packages ", ...
         "and versions.\n"], params.in{i}));
     endif
     idx(end + 1) = idx2;
@@ -97,16 +100,12 @@ function pkg_unload (varargin)
     ## First create a list of loaded packages.
     jdx = find (cellfun (@(x) x.loaded, installed_pkgs_lst));
 
-    ## Add inverse dependencies to field "invdeps" of installed_pkgs_lst
-    installed_pkgs_lst = get_inverse_dependencies (installed_pkgs_lst);
-
     ## Exclude packages requested to be unloaded
     jdx = setdiff (jdx, idx);
     loaded_pkgs = installed_pkgs_lst(jdx);
     lpnames = pnames(jdx);
     p2unload = pnames(idx);
     linvdeps = {};
-    desc = get_inverse_dependencies (desc);
     for i = 1:numel (desc)
       ## Which inverse dependencies depend on this package-to-be-unloaded?
       linvdeps = [linvdeps, get_inv_deps(desc{i}, loaded_pkgs, lpnames){:}];

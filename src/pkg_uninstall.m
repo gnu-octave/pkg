@@ -75,40 +75,60 @@ function pkg_uninstall (varargin)
       idx2 = find (strcmp (pids, params.in{i}));
     else
       ## If only name given "pkg uninstall io", take oldest version.
-      idx2 = find (strcmp (pnames, params.in{i}), 1, "first");
+      idx2 = find (strcmp (pnames, params.in{i}));
+      if (length (idx2) > 1)
+        matches = cell (1, length (idx2));
+        for j = 1:length (idx2)
+          matches{j} = [installed_pkgs_lst{idx2(j)}.name, "@", ...
+                        installed_pkgs_lst{idx2(j)}.version];
+        endfor
+        error (pkg_sprintf (["packages <blue>'%s'</blue> have the name ", ...
+          "<blue>'%s'</blue>.\n\nPlease select the package to ", ...
+          "uninstall.\n"], strjoin (matches, ", "), params.in{i}));
+      endif
     endif
     if (! any (idx2))
       error (pkg_sprintf (["package <blue>'%s'</blue> is not installed.", ...
-        "\n\nRun <blue>'pkg_list'</blue> to see all installed packages ", ...
+        "\n\nRun <blue>'pkg list'</blue> to see all installed packages ", ...
         "and versions.\n"], params.in{i}));
     endif
     delete_idx(end + 1) = idx2;
   endfor
 
   ## Compute the packages that will remain installed.
+  installed_pkgs_lst = get_inverse_dependencies (installed_pkgs_lst);
   idx = setdiff (1:length (installed_pkgs_lst), delete_idx);
   remaining_packages = {installed_pkgs_lst{idx}};
+  remaining_package_ids = pids(idx);
   to_delete_packages = {installed_pkgs_lst{delete_idx}};
 
   ## Check dependencies.
   if (! params.flags.("-nodeps"))
     error_text = "";
-    for i = 1:length (remaining_packages)
-      desc = remaining_packages{i};
-      bad_deps = get_unsatisfied_deps (desc, to_delete_packages, true);
-
-      ## Will the uninstallation break any dependencies?
-      if (! isempty (bad_deps))
-        for i = 1:length (bad_deps)
-          dep = bad_deps{i};
-          error_text = [error_text " " desc.name " needs " ...
-                        dep.package " " dep.operator " " dep.version "\n"];
-        endfor
+    for i = 1:length (to_delete_packages)
+      if (isempty (to_delete_packages{i}.invdeps))
+        continue;
       endif
+      for j = 1:length (to_delete_packages{i}.invdeps)
+        desc = remaining_packages{strcmp (remaining_package_ids, ...
+                                          to_delete_packages{i}.invdeps{j})};
+        bad_deps = get_unsatisfied_deps (desc, remaining_packages);
+
+        ## Will the uninstallation break any dependencies?
+        if (! isempty (bad_deps))
+          for i = 1:length (bad_deps)
+            dep = bad_deps{i};
+            error_text = [error_text, "  ", desc.name, "@", desc.version, ...
+                          " needs ", ...
+                          dep.package, " ", dep.operator, " ", dep.version, ...
+                          "\n"];
+          endfor
+        endif
+      endfor
     endfor
 
     if (! isempty (error_text))
-      error ("the following dependencies where unsatisfied:\n  %s", error_text);
+      error ("the following dependencies where unsatisfied:\n%s", error_text);
     endif
   endif
 
