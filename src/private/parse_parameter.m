@@ -24,12 +24,15 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{params} =} parse_parameter (varargin)
+## @deftypefn {} {@var{params} =} parse_parameter (@var{accepted_flags}, @var{varargin})
 ## Parse and split parameters into flags and other parameter.
 ##
-## After running this function, @code{params.error} must be checked to be
-## empty.  If @code{params.error} is not empty, an error has occured and
-## the error message string is the content.
+## @var{accepted_flags} is a cell array of strings containing the accepted
+## flags in @var{varargin}.
+##
+## After running this function, @code{@var{params}.error} must be checked to
+## be empty.  If @code{@var{params}.error} is not empty, an error has occured
+## and the error message string is the content.
 ##
 ## @example
 ## @group

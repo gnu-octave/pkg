@@ -467,18 +467,12 @@ function pkg_install_internal (pkg_archive, params)
   ## Add the packages to the package list.
   try
     if (global_install)
-      global_packages = save_order ({global_packages, desc});
-      if (ispc)
-        ## On Windows ensure LFN paths are saved rather than 8.3 style paths
-        global_packages = standardize_paths (global_packages);
-      endif
-      global_packages = make_rel_paths (global_packages);
+      global_packages = sort_dependencies_first ({global_packages, desc});
+      global_packages = standardize_paths (global_packages);
       save (conf.global.list, "global_packages");
     else
-      local_packages = save_order ([local_packages, desc]);
-      if (ispc)
-        local_packages = standardize_paths (local_packages);
-      endif
+      local_packages = sort_dependencies_first ([local_packages, desc]);
+      local_packages = standardize_paths (local_packages);
       save (conf.local.list, "local_packages");
     endif
   catch

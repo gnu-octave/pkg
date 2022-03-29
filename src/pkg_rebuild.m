@@ -25,36 +25,32 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {} {@var{descriptions} =} pkg_rebuild (@var{prefix}, @var{archprefix}, @var{files}, @var{verbose})
-## Rebuild the package database from the installed directories.
+## Rebuild the system package database from the installed directories.
 ##
 ## This can be used in cases where the package database has been corrupted.
 ## @end deftypefn
 
-function pkg_rebuild (varargin)
+function packages = pkg_rebuild (varargin)
 
   pkg_config ();
 
   if (global_install)
     global_packages = pkg_rebuild_internal (prefix, archprefix, files, verbose);
-    global_packages = save_order (global_packages);
-    if (ispc)
-      ## On Windows ensure LFN paths are saved rather than 8.3 style paths
-      global_packages = standardize_paths (global_packages);
-    endif
-    global_packages = make_rel_paths (global_packages);
+    global_packages = sort_dependencies_first (global_packages);
+    global_packages = standardize_paths (global_packages);
     save (global_list, "global_packages");
     if (nargout)
-      local_packages = global_packages;
+      packages = global_packages;
     endif
   else
     local_packages = pkg_rebuild_internal (prefix, archprefix, files, verbose);
-    local_packages = save_order (local_packages);
+    local_packages = sort_dependencies_first (local_packages);
     if (ispc)
       local_packages = standardize_paths (local_packages);
     endif
     save (local_list, "local_packages");
-    if (! nargout)
-      clear ("local_packages");
+    if (nargout)
+      packages = local_packages;
     endif
   endif
 

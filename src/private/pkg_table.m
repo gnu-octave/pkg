@@ -24,7 +24,7 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {} pkg_table (@var{data}, @var{column_align})
+## @deftypefn {} {@var{str} =} pkg_table (@var{data}, @var{column_align})
 ## Minimalistic implementation for better looking table output.
 ##
 ## @var{data} is an @var{m} by @var{n} cell array of strings.

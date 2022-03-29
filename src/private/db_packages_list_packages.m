@@ -24,18 +24,18 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {[@var{url}, @var{id}] =} db_packages_list_packages ()
-## Resolve a package from Octave Forge.
+## @deftypefn {} {[@var{available_packages}, @var{checksums}, @var{pkg_idx}] =} db_packages_list_packages ()
+## List available packages from Octave Packages.
 ##
-## Example: Resolve "io" package.
+## @var{available_packages} is a cell array of strings only with package names.
 ##
-## @example
-## @group
-## [url, id] = db_forge_resolve ("io")
-## url = "https://downloads.sourceforge.net/project/octave/Octave%20Forge%20Packages/Individual%20Package%20Releases/io-2.6.3.tar.gz"
-## id = "io-2.6.3.tar.gz"
-## @end group
-## @end example
+## @var{checksums} is a cell array of strings where each row
+## @code{@var{checksums}(i,:)} contains three strings for quick lookup
+##
+## @code{@{ "sha256", "url", "name@atchar{}version" @}}.
+##
+## @var{pkg_idx} is the raw Octave Packages index, which is only queried
+## once per Octave session due to persistent variables.
 ## @end deftypefn
 
 function [available_packages, checksums, pkg_idx] = db_packages_list_packages ()

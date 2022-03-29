@@ -24,19 +24,21 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{newdesc} =} save_order (@var{desc})
-## Undocumented internal function.
+## @deftypefn {} {@var{newdesc} =} sort_dependencies_first (@var{desc})
+## Sort package list that dependencies come before package.
 ## @end deftypefn
 
-function newdesc = save_order (desc)
+function newdesc = sort_dependencies_first (desc)
 
   newdesc = {};
   for i = 1 : length (desc)
     deps = desc{i}.depends;
+    ## If there are no dependencies, just add the object to the new list.
     if (isempty (deps)
         || (length (deps) == 1 && strcmp (deps{1}.package, "octave")))
       newdesc{end + 1} = desc{i};
     else
+      ## Otherwise sort object after its dependencies.
       tmpdesc = {};
       for k = 1 : length (deps)
         for j = 1 : length (desc)
@@ -47,14 +49,14 @@ function newdesc = save_order (desc)
         endfor
       endfor
       if (! isempty (tmpdesc))
-        newdesc = {newdesc{:}, save_order(tmpdesc){:}, desc{i}};
+        newdesc = {newdesc{:}, sort_dependencies_first(tmpdesc){:}, desc{i}};
       else
         newdesc{end+1} = desc{i};
       endif
     endif
   endfor
 
-  ## Eliminate the duplicates.
+  ## Eliminate the duplicates: same ID "name@version".
   idx = [];
   for i = 1 : length (newdesc)
     for j = (i + 1) : length (newdesc)

@@ -108,6 +108,9 @@
 ## @item config
 ## Get or set the pkg-tool configuration.
 ##
+## @item update
+## Update a given or all packages to the latest available version.
+##
 ## @item build
 ## Build platform dependent binary packages from Octave source packages.
 ##
@@ -140,7 +143,8 @@ function varargout = pkg (varargin)
     "rebuild", ...
     "test", ...
     "uninstall", ...
-    "unload"};
+    "unload", ...
+    "update"};
 
   ## Create help string.
   help_str = "Call 'pkg' with one of the following actions:\n\n";
@@ -167,16 +171,6 @@ function varargout = pkg (varargin)
       endif
 
     ## Legacy actions
-  case "update"
-      ## No input or only flags.
-      if (nargin == 1 || all (cellfun (@(s) (s(1) == "-"), varargin(2:end))))
-        pkg_names = cellfun (@(idx) idx.name, pkg_list (), ...
-                             "UniformOutput", false);
-        [varargout{1:nargout}] = pkg_install (varargin{2:end}, pkg_names{:});
-      else
-        [varargout{1:nargout}] = pkg_install (varargin{2:end});
-      endif
-
     case "prefix"
       [varargout{1:nargout}] = legacy_pkg_prefix (varargin{2:end});
 

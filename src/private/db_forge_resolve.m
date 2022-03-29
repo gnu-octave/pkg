@@ -24,17 +24,18 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {[@var{urls}, @var{ids}, @var{checksums}] =} db_forge_resolve (@var{names})
-## Resolve packages by name from Octave Forge.
+## @deftypefn {} {[@var{items}] =} db_forge_resolve (@var{items})
+## Resolve package items with Octave Forge.
 ##
-## Example: Resolve "io" package.
+## Example: Resolve "io" and "image" package.
 ##
 ## @example
 ## @group
-## [urls, ids, checksums] = db_forge_resolve ({"io"})
-## urls = {"https://downloads.sourceforge.net/project/octave/Octave%20Forge%20Packages/Individual%20Package%20Releases/io-2.6.3.tar.gz"}
-## ids = {"io@2.6.3"}
-## checksums = {}
+## items(1).id = "io";
+## items(2).id = "image";
+## items = db_forge_resolve (items)
+## # items.id = {"io@2.6.4", "image@2.14.0"}
+## # items.url = {"https://io-url", "https://image-url"}
 ## @end group
 ## @end example
 ## @end deftypefn
@@ -42,8 +43,8 @@
 function items = db_forge_resolve (items)
 
   ## Octave Forge can only resolve package IDs without version.
-  ## Most of the data is clear, only the most recent package version has
-  ## to be determined.
+  ## Most of the data is clear, only the most recent package version can
+  ## be determined.
 
   for i = 1:numel (items)
 

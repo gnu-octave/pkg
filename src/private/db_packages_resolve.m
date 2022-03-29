@@ -24,17 +24,25 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {[@var{urls}, @var{ids}, @var{checksums}] =} db_packages_resolve (@var{names})
+## @deftypefn {} {[@var{items}] =} db_packages_resolve (@var{items}, @var{params})
 ## Resolve packages by name from Octave Packages.
 ##
-## Example: Resolve "io" package.
+## Example: Resolve "io" and "image" package.
 ##
 ## @example
 ## @group
-## [urls, ids, checksums] = db_packages_resolve ({"io"})
-## urls = {"https://downloads.sourceforge.net/project/octave/Octave%20Forge%20Packages/Individual%20Package%20Releases/io-2.6.3.tar.gz"}
-## ids = {"io@2.6.3"}
-## checksums = {}
+## items = {"io", "image"};
+## items = struct ("url", repmat({""}, 1, numel (items)), ...
+##                 "id", items, "checksum", "", ...
+##                 "needed_by", cell(1, numel (items)));
+## params.flags.("-force")  = true;
+## params.flags.("-nodeps") = false;
+## items = db_packages_resolve (items, params)
+## # items.url = {"https://io-url", "https://image-url"}
+## # items.id = {"io@2.6.4", "image@2.14.0"}
+## # items.checksum = {"sha256", "sha256"}
+## # items.needed_by = {[], []}
+## # items.deps = {{}, {}}
 ## @end group
 ## @end example
 ## @end deftypefn

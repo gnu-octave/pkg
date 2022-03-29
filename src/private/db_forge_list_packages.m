@@ -24,18 +24,8 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {[@var{url}, @var{id}] =} db_forge_resolve (@var{name})
-## Resolve a package from Octave Forge.
-##
-## Example: Resolve "io" package.
-##
-## @example
-## @group
-## [url, id] = db_forge_resolve ("io")
-## url = "https://downloads.sourceforge.net/project/octave/Octave%20Forge%20Packages/Individual%20Package%20Releases/io-2.6.3.tar.gz"
-## id = "io-2.6.3.tar.gz"
-## @end group
-## @end example
+## @deftypefn {} {[@var{available_packages}] =} db_forge_list_packages ()
+## List available packages from Octave Forge.
 ## @end deftypefn
 
 function available_packages = db_forge_list_packages ()

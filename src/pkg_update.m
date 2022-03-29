@@ -24,35 +24,22 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{emp} =} dirempty (@var{nm}, @var{ign})
-## Check if a directory is empty.
+## @deftypefn {} {} pkg_update (@var{package})
+## Update a given or all installed packages to the latest available version.
+##
+## With arguments given, this function is identical to @code{pkg_install}.
+## @see{pkg_install}
 ## @end deftypefn
 
-function emp = dirempty (nm, ign)
+function pkg_update (varargin)
+  ## Most of the work is done by pkg_install.
 
-  if (isfolder (nm))
-    if (nargin < 2)
-      ign = {".", ".."};
-    else
-      ign = [{".", ".."}, ign];
-    endif
-    l = dir (nm);
-    for i = 1:length (l)
-      found = false;
-      for j = 1:length (ign)
-        if (strcmp (l(i).name, ign{j}))
-          found = true;
-          break;
-        endif
-      endfor
-      if (! found)
-        emp = false;
-        return;
-      endif
-    endfor
-    emp = true;
+  ## No input or only flags: update all installed packages.
+  if (! nargin || all (cellfun (@(s) (s(1) == "-"), varargin)))
+    pkg_names = cellfun (@(p) p.name, pkg_list (), "UniformOutput", false);
+    pkg_install (varargin{:}, pkg_names{:});
   else
-    emp = true;
+    pkg_install (varargin{:});
   endif
 
 endfunction

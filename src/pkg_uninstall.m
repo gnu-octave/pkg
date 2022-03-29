@@ -158,22 +158,16 @@ function pkg_uninstall (varargin)
     if (numel (remaining_packages) == 0)
       [~] = unlink (conf.global.list);
     else
-      global_packages = save_order (remaining_packages);
-      if (ispc)
-        ## On Windows ensure LFN paths are saved rather than 8.3 style paths
-        global_packages = standardize_paths (global_packages);
-      endif
-      global_packages = make_rel_paths (global_packages);
+      global_packages = sort_dependencies_first (remaining_packages);
+      lobal_packages = standardize_paths (global_packages);
       save (conf.global.list, "global_packages");
     endif
   else
     if (numel (remaining_packages) == 0)
       [~] = unlink (conf.local.list);
     else
-      local_packages = save_order (remaining_packages);
-      if (ispc)
-        local_packages = standardize_paths (local_packages);
-      endif
+      local_packages = sort_dependencies_first (remaining_packages);
+      local_packages = standardize_paths (local_packages);
       save (conf.local.list, "local_packages");
     endif
   endif
