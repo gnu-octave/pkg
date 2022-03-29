@@ -12,34 +12,34 @@ on:
 
 jobs:
 
-  macos-octave:
-    name: Octave (latest) on macOS (latest)
-    runs-on: macos-latest
+  # macos-octave:
+  #   name: Octave (latest) on macOS (latest)
+  #   runs-on: macos-latest
 
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
+  #   steps:
+  #     - name: Check out repository
+  #       uses: actions/checkout@v2
 
-      - name: Install Octave by homebrew
-        run: brew install octave gfortran
+  #     - name: Install Octave by homebrew
+  #       run: brew install octave gfortran
 
-      - name: Run basic pkg-tool tests
-        run: octave --eval "cd test; ci_test();"
+  #     - name: Run basic pkg-tool tests
+  #       run: octave --eval "cd test; ci_test();"
 
 
-  windows-octave:
-    name: Octave (latest) on MS Windows (latest)
-    runs-on: windows-latest
+  # windows-octave:
+  #   name: Octave (latest) on MS Windows (latest)
+  #   runs-on: windows-latest
 
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
+  #   steps:
+  #     - name: Check out repository
+  #       uses: actions/checkout@v2
 
-      - name: Install Octave by Chocolatey
-        run: choco install octave.portable
+  #     - name: Install Octave by Chocolatey
+  #       run: choco install octave.portable
 
-      - name: Run basic pkg-tool tests
-        run: octave --eval "cd test; ci_test();"
+  #     - name: Run basic pkg-tool tests
+  #       run: octave --eval "cd test; ci_test();"
 
 
   ubuntu-20_04-octave:
@@ -51,88 +51,92 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install Octave
-        run: sudo apt-get -y install octave liboctave-dev libopenblas-dev
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install octave liboctave-dev libopenblas-dev
 
       - name: Run basic pkg-tool tests
         run: octave --eval "cd test; ci_test();"
 
 
-  ubuntu-18_04-octave:
-    name: Octave 4.2.2 on Ubuntu 18.04
-    runs-on: ubuntu-18.04
+  # ubuntu-18_04-octave:
+  #   name: Octave 4.2.2 on Ubuntu 18.04
+  #   runs-on: ubuntu-18.04
 
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
+  #   steps:
+  #     - name: Check out repository
+  #       uses: actions/checkout@v2
 
-      - name: Install Octave
-        run: sudo apt-get -y install octave liboctave-dev libopenblas-dev
+  #     - name: Install Octave
+  #       run: |
+  #         sudo apt-get -y update
+  #         sudo apt-get -y install octave liboctave-dev libopenblas-dev
 
-      - name: Run basic pkg-tool tests
-        run: octave --eval "cd test; ci_test();"
-
-
-  flatpak-octave:
-    name: Octave (latest) on Flatpak (latest)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
-
-      - name: Install Octave
-        run: |
-          sudo apt-get -y install flatpak
-          flatpak remote-add --user --if-not-exists \
-                  flathub https://flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y flathub org.octave.Octave
-
-      - name: Run basic pkg-tool tests
-        run: |
-          flatpak run org.octave.Octave --eval "cd test; ci_test();"
+  #     - name: Run basic pkg-tool tests
+  #       run: octave --eval "cd test; ci_test();"
 
 
-  snap-octave:
-    name: Octave (latest) on Snap (latest)
-    runs-on: ubuntu-latest
+  # flatpak-octave:
+  #   name: Octave (latest) on Flatpak (latest)
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
+  #   steps:
+  #     - name: Check out repository
+  #       uses: actions/checkout@v2
 
-      - name: Install Octave
-        run: |
-          sudo apt-get -y install snapd
-          sudo snap install octave
+  #     - name: Install Octave
+  #       run: |
+  #         sudo apt-get -y install flatpak
+  #         flatpak remote-add --user --if-not-exists \
+  #                 flathub https://flathub.org/repo/flathub.flatpakrepo
+  #         flatpak install --user -y flathub org.octave.Octave
 
-      - name: Run basic pkg-tool tests
-        run: snap run octave --eval "cd test; ci_test();"
+  #     - name: Run basic pkg-tool tests
+  #       run: |
+  #         flatpak run org.octave.Octave --eval "cd test; ci_test();"
 
 
-  docker-octave:
-    name: Octave on Docker
-    runs-on: ubuntu-latest
+  # snap-octave:
+  #   name: Octave (latest) on Snap (latest)
+  #   runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        image:
-        # - docker.io/gnuoctave/octave
-        - ghcr.io/gnu-octave/octave
-        version:
-        - 6.4.0
+  #   steps:
+  #     - name: Check out repository
+  #       uses: actions/checkout@v2
 
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
+  #     - name: Install Octave
+  #       run: |
+  #         sudo apt-get -y install snapd
+  #         sudo snap install octave
 
-      - name: Install Octave
-        run: docker pull ${{ matrix.image }}:${{ matrix.version }}
+  #     - name: Run basic pkg-tool tests
+  #       run: snap run octave --eval "cd test; ci_test();"
 
-      - name: Run basic pkg-tool tests
-        run: |
-          docker run \
-            --user root \
-            --env="GRANT_SUDO=yes" \
-            --volume="$(pwd):/home/jovyan/pkg:rw" \
-            ${{ matrix.image }}:${{ matrix.version }} \
-            octave-cli --eval "cd /home/jovyan/pkg/test; ci_test();"
+
+  # docker-octave:
+  #   name: Octave on Docker
+  #   runs-on: ubuntu-latest
+
+  #   strategy:
+  #     matrix:
+  #       image:
+  #       # - docker.io/gnuoctave/octave
+  #       - ghcr.io/gnu-octave/octave
+  #       version:
+  #       - 6.4.0
+
+  #   steps:
+  #     - name: Check out repository
+  #       uses: actions/checkout@v2
+
+  #     - name: Install Octave
+  #       run: docker pull ${{ matrix.image }}:${{ matrix.version }}
+
+  #     - name: Run basic pkg-tool tests
+  #       run: |
+  #         docker run \
+  #           --user root \
+  #           --env="GRANT_SUDO=yes" \
+  #           --volume="$(pwd):/home/jovyan/pkg:rw" \
+  #           ${{ matrix.image }}:${{ matrix.version }} \
+  #           octave-cli --eval "cd /home/jovyan/pkg/test; ci_test();"
