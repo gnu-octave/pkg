@@ -108,13 +108,9 @@ jobs:
       - name: Run basic pkg-tool tests
         run: snap run octave --eval "cd test; ci_test();"
 
-      - name: Pull Octave image
-        if: ${{ env.CHANGED_PACKAGES != '' }}
-        run: docker pull ${{ matrix.image }}:${{ matrix.version }}
-
 
   docker-octave:
-
+    name: Octave on Docker
     runs-on: ubuntu-latest
 
     strategy:
@@ -126,8 +122,13 @@ jobs:
         - 6.4.0
 
     steps:
-      - name: Octave package test
-        if: ${{ env.CHANGED_PACKAGES != '' }}
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Install Octave
+        run: docker pull ${{ matrix.image }}:${{ matrix.version }}
+
+      - name: Run basic pkg-tool tests
         run: |
           docker run \
             --user root \
