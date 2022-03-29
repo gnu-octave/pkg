@@ -62,6 +62,10 @@ function pkg_startup_hook (verbose)
     "Check if '~/.octaverc' contains pkg-tool startup hook.", ...
     check_pkg_tool_octaverc_hook_exists ());
 
+  verbose_output (verbose, ...
+    "Check if 'suggest.oct' is compiled.", ...
+    check_suggest_oct_exists ());
+
   if (verbose)
     pkg_printf ("\n  <check> <blue>All self-tests done.</blue>\n\n");
   endif
@@ -171,5 +175,20 @@ function msg = check_pkg_tool_octaverc_hook_exists ();
       "run the following two commands:\n", ...
       "\n\tpkg_config (\"-remove-startup-hooks\");", ...
       "\n\tpkg_config (\"-add-startup-hook\");\n"], octaverc_file);
+  endif
+endfunction
+
+
+function msg = check_suggest_oct_exists ()
+  msg = "";
+
+  ## Check if 'suggest.oct' is compiled.
+  if (exist ("suggest", "file") != 3)
+    old_dir = cd ([pkg_config()].pkg_dir);
+    unwind_protect
+      mkoctfile suggest.cc
+    unwind_protect_cleanup
+      cd (old_dir);
+    end_unwind_protect
   endif
 endfunction
