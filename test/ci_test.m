@@ -30,7 +30,9 @@ function ci_test ()
   c_normal = '\033[0m';
 
   ## Configure pkg-tool
-  pkg_config
+  old_dir = cd (fullfile ("..", "src"));
+  pkg_config ();
+  cd (old_dir);
 
   ## Call old pkg-tool tests
   [~, ~, nfail] = test ("pkg_test_suite_old");
