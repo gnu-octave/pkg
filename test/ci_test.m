@@ -42,7 +42,7 @@ function ci_test ()
     printf ([c_red, "FAILED: pkg_test_suite_old", c_normal]);
     exit (-1);
   else
-    printf ([green, "PASSED: pkg_test_suite_old", c_normal])
+    printf ([c_green, "PASSED: pkg_test_suite_old", c_normal])
   endif
 
 endfunction
