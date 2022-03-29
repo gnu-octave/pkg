@@ -56,7 +56,9 @@ jobs:
           sudo apt-get -y install octave liboctave-dev libopenblas-dev
 
       - name: Run basic pkg-tool tests
-        run: octave --eval "cd test; ci_test();"
+        run: |
+          octave --eval "cd src; pkg_config();"
+          octave --eval "cd test; ci_test();"
 
 
   # ubuntu-18_04-octave:
