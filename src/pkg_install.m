@@ -444,10 +444,9 @@ function pkg_install_internal (pkg_archive, params)
     configure_make (desc, packdir, params.flags.("-verbose"));
     copy_built_files (desc, packdir, params.flags.("-verbose"));
     copy_files (desc, packdir, global_install);
-    create_pkgadddel (desc, packdir, "PKG_ADD", global_install);
-    create_pkgadddel (desc, packdir, "PKG_DEL", global_install);
+    create_pkgadd_pkgdel (desc, packdir);
     finish_installation (desc, packdir);
-    ##TODO: generate_lookfor_cache (desc);
+    generate_lookfor_cache (desc);
   catch
     ## Something went wrong, delete tmpdir.
     [~] = rmdir (tmpdir, "s");
@@ -881,7 +880,7 @@ function write_index (desc, dir, index_file, global_install)
   ## Write INDEX.
   fid = fopen (index_file, "w");
   if (fid == -1)
-    error ("couldn't open %s for writing", index_file);
+    error ("couldn't open '%s' for writing", index_file);
   endif
   fprintf (fid, "%s >> %s\n", desc.name, desc.title);
   fprintf (fid, "%s\n", categories{1});
@@ -891,91 +890,84 @@ function write_index (desc, dir, index_file, global_install)
 endfunction
 
 
-function create_pkgadddel (desc, packdir, nm, global_install)
+function create_pkgadd_pkgdel (desc, packdir)
 
-  instpkg = fullfile (desc.dir, nm);
-  instfid = fopen (instpkg, "at"); # append to support PKG_ADD at inst/
-  ## If it is exists, most of the PKG_* file should go into the
-  ## architecture dependent directory so that the autoload/mfilename
-  ## commands work as expected.  The only part that doesn't is the
-  ## part in the main directory.
-  archdir = fullfile (getarchprefix (desc, global_install),
-                      [desc.name "-" desc.version], [pkg_config()].arch);
-  if (isfolder (desc.archdir))
-    archpkg = fullfile (desc.archdir, nm);
-    archfid = fopen (archpkg, "at");
-  else
-    archpkg = instpkg;
-    archfid = instfid;
-  endif
+  for pkg_files = {"PKG_DEL", "PKG_ADD"};
+    pkg_file = pkg_files{1};
 
-  if (archfid >= 0 && instfid >= 0)
-    if (ispc ())
-      oct_glob = @__wglob__;
+    instpkg = fullfile (desc.dir, pkg_file);
+    instfid = fopen (instpkg, "at"); # append to support PKG_ADD at inst/
+    ## If it is exists, most of the PKG_* file should go into the
+    ## architecture dependent directory so that the autoload/mfilename
+    ## commands work as expected.  The only part that doesn't is the
+    ## part in the main directory.
+    if (isfolder (desc.archdir))
+      archpkg = fullfile (desc.archdir, pkg_file);
+      archfid = fopen (archpkg, "at");
     else
-      oct_glob = @glob;
+      archpkg = instpkg;
+      archfid = instfid;
     endif
 
-    ## Search all dot-m files for PKG commands.
-    lst = oct_glob (fullfile (packdir, "inst", "*.m"));
-    for i = 1:length (lst)
-      nam = lst{i};
-      fwrite (instfid, extract_pkg (nam, ['^[#%][#%]* *' nm ': *(.*)$']));
-    endfor
-
-    ## Search all C++ source files for PKG commands.
-    cc_lst = oct_glob (fullfile (packdir, "src", "*.cc"));
-    cpp_lst = oct_glob (fullfile (packdir, "src", "*.cpp"));
-    cxx_lst = oct_glob (fullfile (packdir, "src", "*.cxx"));
-    lst = [cc_lst; cpp_lst; cxx_lst];
-    for i = 1:length (lst)
-      nam = lst{i};
-      fwrite (archfid, extract_pkg (nam, ['^//* *' nm ': *(.*)$']));
-      fwrite (archfid, extract_pkg (nam, ['^/\** *' nm ': *(.*) *\*/$']));
-    endfor
-
-    ## Add developer included PKG commands.
-    packdirnm = fullfile (packdir, nm);
-    if (exist (packdirnm, "file"))
-      fid = fopen (packdirnm, "rt");
-      if (fid >= 0)
-        while (! feof (fid))
-          ln = fgets (fid);
-          if (ln > 0)
-            fwrite (archfid, ln);
-          endif
-        endwhile
-        fclose (fid);
+    if (archfid >= 0 && instfid >= 0)
+      if (ispc ())
+        oct_glob = @__wglob__;
+      else
+        oct_glob = @glob;
       endif
-    endif
 
-    ## If the files is empty remove it.
-    fclose (instfid);
-    t = dir (instpkg);
-    if (t.bytes <= 0)
-      unlink (instpkg);
-    endif
+      ## Search all dot-m files for PKG commands.
+      lst = oct_glob (fullfile (packdir, "inst", "*.m"));
+      for i = 1:length (lst)
+        nam = lst{i};
+        fwrite (instfid, extract_pkg (nam, ...
+          ['^[#%][#%]* *' pkg_file ': *(.*)$']));
+      endfor
 
-    if (instfid != archfid)
-      fclose (archfid);
-      t = dir (archpkg);
+      ## Search all C++ source files for PKG commands.
+      cc_lst = oct_glob (fullfile (packdir, "src", "*.cc"));
+      cpp_lst = oct_glob (fullfile (packdir, "src", "*.cpp"));
+      cxx_lst = oct_glob (fullfile (packdir, "src", "*.cxx"));
+      lst = [cc_lst; cpp_lst; cxx_lst];
+      for i = 1:length (lst)
+        nam = lst{i};
+        fwrite (archfid, extract_pkg (nam, ...
+          ['^//* *' pkg_file ': *(.*)$']));
+        fwrite (archfid, extract_pkg (nam, ...
+          ['^/\** *' pkg_file ': *(.*) *\*/$']));
+      endfor
+
+      ## Add developer included PKG commands.
+      packdirnm = fullfile (packdir, pkg_file);
+      if (exist (packdirnm, "file"))
+        fid = fopen (packdirnm, "rt");
+        if (fid >= 0)
+          while (! feof (fid))
+            ln = fgets (fid);
+            if (ln > 0)
+              fwrite (archfid, ln);
+            endif
+          endwhile
+          fclose (fid);
+        endif
+      endif
+
+      ## If the files is empty remove it.
+      fclose (instfid);
+      t = dir (instpkg);
       if (t.bytes <= 0)
-        unlink (archpkg);
+        unlink (instpkg);
+      endif
+
+      if (instfid != archfid)
+        fclose (archfid);
+        t = dir (archpkg);
+        if (t.bytes <= 0)
+          unlink (archpkg);
+        endif
       endif
     endif
-  endif
-
-endfunction
-
-
-function archprefix = getarchprefix (desc, global_install)
-
-  if (global_install)
-    [~, archprefix] = default_prefix (global_install);
-    archprefix = fullfile (archprefix, [desc.name "-" desc.version]);
-  else
-    archprefix = desc.dir;
-  endif
+  endfor
 
 endfunction
 
