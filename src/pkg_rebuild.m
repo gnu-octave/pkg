@@ -24,86 +24,90 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{descriptions} =} pkg_rebuild (@var{prefix}, @var{archprefix}, @var{files}, @var{verbose})
-## Rebuild the system package database from the installed directories.
+## @deftypefn {}  {@var{descriptions} =} pkg_rebuild (@var{files})
+## @deftypefnx {} {} pkg_rebuild (@option{-verbose})
+## @deftypefnx {} {} pkg_rebuild (@option{-global})
+## Rebuild the package list from the (arch)prefix directories.
 ##
-## This can be used in cases where the package database has been corrupted.
+## This can be used in cases where the package list has been corrupted
+## and installed packages cannot be found by the pkg-tool.
+##
+## Use @option{-verbose} to get more verbose output.
+##
+## Use @option{-global} to rebuild the global package list.  This might
+## require elevated (system administrator) rights.
 ## @end deftypefn
 
 function packages = pkg_rebuild (varargin)
 
-  pkg_config ();
+  config = pkg_config ();
 
-  if (global_install)
-    global_packages = pkg_rebuild_internal (prefix, archprefix, files, verbose);
-    global_packages = sort_dependencies_first (global_packages);
-    global_packages = standardize_paths (global_packages);
-    save (global_list, "global_packages");
-    if (nargout)
-      packages = global_packages;
+  params = parse_parameter ({"-verbose", "-global"}, varargin{:});
+  if (! isempty (params.error))
+    error ("pkg_rebuild: %s\n\n%s\n\n", params.error, help ("pkg_rebuild"));
+  endif
+  files = params.in;
+
+  if (params.flags.("-global"))
+    if (! config.has_elevated_rights)
+      warning (["pkg_rebuild: '-global' was used without having elevated ", ...
+        "(system administrator) rights.  The following operation is ", ...
+        "likely to fail.\n"]);
     endif
+    scope = "global";
   else
-    local_packages = pkg_rebuild_internal (prefix, archprefix, files, verbose);
-    local_packages = sort_dependencies_first (local_packages);
-    if (ispc)
-      local_packages = standardize_paths (local_packages);
-    endif
-    save (local_list, "local_packages");
-    if (nargout)
-      packages = local_packages;
-    endif
+    scope = "local";
   endif
 
-endfunction
-
-
-function descriptions = pkg_rebuild_internal (prefix, archprefix, files, verbose)
+  if (ispc ())
+    oct_glob = @__wglob__;
+  else
+    oct_glob = @glob;
+  endif
 
   if (isempty (files))
-    if (! exist (prefix, "dir"))
-      dirlist = [];
-    else
-      [dirlist, err, msg] = readdir (prefix);
-      if (err)
-        error ("couldn't read directory %s: %s", prefix, msg);
-      endif
-      ## the two first entries of dirlist are "." and ".."
-      dirlist([1,2]) = [];
-    endif
+    dirlist = oct_glob (fullfile (config.(scope).prefix, "*"));
   else
-    old_descriptions = pkg_list ();
-    wd = pwd ();
-    unwind_protect
-      cd (prefix);
-      if (ispc ())
-        dirlist = __wglob__ (strcat (files, '-*'));
-      else
-        dirlist = glob (strcat (files, '-*'));
-      endif
-    unwind_protect_cleanup
-      cd (wd);
-    end_unwind_protect
+    dirlist = oct_glob (fullfile (config.(scope).prefix, strcat (files, '*')));
+  endif
+
+  if (isempty (dirlist))
+    error ("pkg_rebuild: could not read directory '%s'\n", ...
+      config.(scope).prefix);
   endif
 
   descriptions = {};
+  if (params.flags.("-verbose"))
+    printf ("Recreating package list from directories:\n\n");
+  endif
   for k = 1:length (dirlist)
-    descfile = fullfile (prefix, dirlist{k}, "packinfo", "DESCRIPTION");
-    if (verbose)
-      printf ("recreating package description from %s\n", dirlist{k});
+    descfile = fullfile (dirlist{k}, "packinfo", "DESCRIPTION");
+    if (params.flags.("-verbose"))
+      pkg_printf ("  <blue>'%s'</blue>\n", dirlist{k});
     endif
     if (exist (descfile, "file"))
+      ## Read the DESCRIPTION file.
       desc = get_description (descfile);
-      desc.dir = fullfile (prefix, dirlist{k});
-      desc.archprefix = fullfile (archprefix, [desc.name "-" desc.version]);
+
+      ## Use found installation directory.
+      desc.dir = dirlist{k};
+
+      ## Set default architecture dependent installation directory.
+      desc.archprefix = fullfile (config.(scope).archprefix, [desc.name "@" desc.version]);
+      desc.archdir    = fullfile (desc.archprefix, config.arch);
+
       descriptions{end + 1} = desc;
-    elseif (verbose)
-      warning ("directory %s is not a valid package", dirlist{k});
+    elseif (params.flags.("-verbose"))
+      warning ("    Directory '%s' does not contain a valid package", ...
+        dirlist{k});
     endif
   endfor
+  disp (" ");
 
   if (! isempty (files))
     ## We are rebuilding for a particular package(s) so we should take
     ## care to keep the other untouched packages in the descriptions
+    old_descriptions = pkg_list ();
     descriptions = {descriptions{:}, old_descriptions{:}};
 
     dup = [];
@@ -123,6 +127,22 @@ function descriptions = pkg_rebuild_internal (prefix, archprefix, files, verbose
     if (! isempty (dup))
       descriptions(dup) = [];
     endif
+  endif
+
+
+  descriptions = sort_dependencies_first (descriptions);
+  descriptions = standardize_paths (descriptions);
+
+  if (params.flags.("-global"))
+    global_packages = descriptions;
+    save (config.global.list, "global_packages");
+  else
+    local_packages = descriptions;
+    save (config.local.list, "local_packages");
+  endif
+
+  if (nargout)
+    packages = descriptions;
   endif
 
 endfunction
