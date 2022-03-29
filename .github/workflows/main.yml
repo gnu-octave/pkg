@@ -1,0 +1,137 @@
+name: Basic pkg-tool tests
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+
+  macos-octave:
+    name: Octave (latest) on macOS (latest)
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Install Octave by homebrew
+        run: brew install octave
+
+      - name: Run basic pkg-tool tests
+        run: octave --eval "cd test; ci_test();"
+
+
+  windows-octave:
+    name: Octave (latest) on MS Windows (latest)
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Install Octave by Chocolatey
+        run: choco install octave.portable
+
+      - name: Run basic pkg-tool tests
+        run: octave --eval "cd test; ci_test();"
+
+
+  ubuntu-20_04-octave:
+    name: Octave 5.2.0 on Ubuntu 20.04
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Install Octave
+        run: sudo apt-get -y install octave liboctave-dev libopenblas-dev
+
+      - name: Run basic pkg-tool tests
+        run: octave --eval "cd test; ci_test();"
+
+
+  ubuntu-18_04-octave:
+    name: Octave 4.2.2 on Ubuntu 18.04
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Install Octave
+        run: sudo apt-get -y install octave liboctave-dev libopenblas-dev
+
+      - name: Run basic pkg-tool tests
+        run: octave --eval "cd test; ci_test();"
+
+
+  flatpak-octave:
+    name: Octave (latest) on Flatpak (latest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Install Octave
+        run: |
+          sudo apt-get -y install flatpak
+          flatpak remote-add --user --if-not-exists \
+                  flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.octave.Octave
+
+      - name: Run basic pkg-tool tests
+        run: |
+          flatpak run org.octave.Octave --eval "cd test; ci_test();"
+
+
+  snap-octave:
+    name: Octave (latest) on Snap (latest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Install Octave
+        run: |
+          sudo apt-get -y install snapd
+          sudo snap install octave
+
+      - name: Run basic pkg-tool tests
+        run: snap run octave --eval "cd test; ci_test();"
+
+      - name: Pull Octave image
+        if: ${{ env.CHANGED_PACKAGES != '' }}
+        run: docker pull ${{ matrix.image }}:${{ matrix.version }}
+
+
+  docker-octave:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        image:
+        # - docker.io/gnuoctave/octave
+        - ghcr.io/gnu-octave/octave
+        version:
+        - 6.4.0
+
+    steps:
+      - name: Octave package test
+        if: ${{ env.CHANGED_PACKAGES != '' }}
+        run: |
+          docker run \
+            --user root \
+            --env="GRANT_SUDO=yes" \
+            --volume="$(pwd):/home/jovyan/pkg:rw" \
+            ${{ matrix.image }}:${{ matrix.version }} \
+            octave-cli --eval "cd test; ci_test();"
