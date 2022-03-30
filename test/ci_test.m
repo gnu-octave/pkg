@@ -33,11 +33,10 @@ function ci_test ()
   pkg_dev_url = ...
     "https://github.com/gnu-octave/pkg/archive/refs/heads/main.tar.gz";
 
-  ## Use builtin Octave pkg-toolkit to install new pkg-toolkit
+  ## Use builtin Octave pkg-toolkit to install new pkg-toolkit.
+  ## For customized pkg settings in `~/.octaverc` call after each step:
+  ##   source ("~/.octaverc");
   pkg ("install", pkg_dev_url);
-  if (exist("~/.octaverc", "file") == 2);
-    source ("~/.octaverc");
-  endif
   pkg ("load", "pkg");
 
   #####################################
@@ -64,5 +63,16 @@ function ci_test ()
   else
     pkg_printf ([PASSED, "  pkg_test_suite_old in %.2f seconds.\n"], t);
   endif
+
+  ###########################
+  ## Uninstall new pkg-tool.
+  ###########################
+  pkg_config ("-remove-startup-hooks");
+  pkg_unload ("pkg");
+  
+  ## Finally with the builtin pkg-tool
+  ## For customized pkg settings in `~/.octaverc` call now:
+  ##   source ("~/.octaverc");
+  pkg ("uninstall", "pkg");
 
 endfunction
