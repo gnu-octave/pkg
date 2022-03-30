@@ -185,3 +185,6 @@ function varargout = pkg (varargin)
   endswitch
 
 endfunction
+
+## PKG_ADD: if (exist ("~/.octaverc", "file") == 2); source ("~/.octaverc"); endif
+## PKG_DEL: if (exist ("~/.octaverc", "file") == 2); source ("~/.octaverc"); endif
