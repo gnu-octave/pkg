@@ -28,21 +28,32 @@ function ci_test ()
   c_red    = '\033[38;5;1m';
   c_green  = '\033[38;5;2m';
   c_normal = '\033[0m';
+  PASSED = [c_green, "PASSED", c_normal];
+  FAILED = [c_red,   "FAILED", c_normal];
+  pkg_dev_url = ...
+    "https://github.com/gnu-octave/pkg/archive/refs/heads/main.tar.gz";
+  
+  ## Use builtin Octave pkg-toolkit to install new pkg-toolkit
+  pkg ("install", pkg_dev_url);
+  pkg load pkg
 
-  ## Configure pkg-tool
-  old_dir = cd (fullfile ("..", "src"));
-  pkg_config ();
+  ## Show configuration of pkg-tool.  MUST be command form for output!
+  pkg config
   cd (old_dir);
 
   ## Call old pkg-tool tests
+  tic;
   [~, ~, nfail] = test ("pkg_test_suite_old");
+  t = toc ();
   if (nfail > 0)
-    printf ([c_red, "FAILED: pkg_test_suite_old", c_normal]);
+    pkg_printf ([FAILED, "  pkg_test_suite_old in %.2f seconds.\n"], t);
+    tic;
     test ("pkg_test_suite_old", "verbose");
-    printf ([c_red, "FAILED: pkg_test_suite_old", c_normal]);
+    t = toc ();
+    pkg_printf ([FAILED, "  pkg_test_suite_old in %.2f seconds.\n"], t);
     exit (-1);
   else
-    printf ([c_green, "PASSED: pkg_test_suite_old", c_normal])
+    pkg_printf ([PASSED, "  pkg_test_suite_old in %.2f seconds.\n"], t);
   endif
 
 endfunction

@@ -1,4 +1,5 @@
-name: Basic pkg-tool tests
+name: Octave pkg-tool tests
+
 
 # Controls when the action will run.
 on:
@@ -7,8 +8,13 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
   workflow_dispatch:
+
+
+env:
+  CURL_OPT: --fail --location --silent --show-error --output
+  CI_TEST_URL: https://raw.githubusercontent.com/gnu-octave/pkg/main/test/ci_test.m
+
 
 jobs:
 
@@ -47,18 +53,16 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
-
       - name: Install Octave
         run: |
           sudo apt-get -y update
           sudo apt-get -y install octave liboctave-dev libopenblas-dev
 
-      - name: Run basic pkg-tool tests
-        run: |
-          octave --eval "cd src; pkg_config();"
-          octave --eval "cd test; ci_test();"
+      - name: Get pkg-tool CI code
+        run: curl $(CURL_OPTS) ci_test.m $(CI_TEST_URL)
+
+      - name: Run pkg-tool CI tests
+        run: octave --eval "ci_test();"
 
 
   # ubuntu-18_04-octave:
