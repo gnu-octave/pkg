@@ -182,11 +182,13 @@ endfunction
 function msg = check_suggest_oct_exists ()
   msg = "";
 
-  ## Check if 'suggest.oct' is compiled.
-  if (exist ("suggest", "file") != 3)
-    old_dir = cd ([pkg_config()].pkg_dir);
+  ## Check if 'suggest.oct' is compiled and can be compiled.
+  pkg_dir = [pkg_config()].pkg_dir;
+  suggest_cc = fullfile (pkg_dir, "..", "src", "suggest.cc");
+  if ((exist ("suggest", "file") != 3) && (exist (suggest_cc, "file") != 3))
+    old_dir = cd (pkg_dir);
     unwind_protect
-      mkoctfile suggest.cc
+      [~] = mkoctfile (suggest_cc);
     unwind_protect_cleanup
       cd (old_dir);
     end_unwind_protect
