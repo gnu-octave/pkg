@@ -35,6 +35,9 @@ function ci_test ()
 
   ## Use builtin Octave pkg-toolkit to install new pkg-toolkit
   pkg ("install", pkg_dev_url);
+  if (exist("~/.octaverc", "file") == 2);
+    source ("~/.octaverc");
+  endif
   pkg ("load", "pkg");
 
   #####################################
