@@ -13,7 +13,7 @@ on:
 
 env:
   CURL_OPTS: --fail --location --silent --show-error --output
-  CI_TEST_URL: https://raw.githubusercontent.com/gnu-octave/pkg/main/test/ci_test.m
+  CI_TEST_URL: https://raw.githubusercontent.com/gnu-octave/pkg/main/doc/test/ci_test.m
 
 
 jobs:

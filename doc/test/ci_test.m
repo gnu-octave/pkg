@@ -49,20 +49,31 @@ function ci_test ()
   ## Show configuration of pkg-tool.  MUST be command form for output!
   pkg config
 
+  ##############
+  ## Run Tests
+  ##############
+
   ## Call old pkg-tool tests
-  tic;
-  [~, ~, nfail] = test ("pkg_test_suite_old");
-  t = toc ();
-  if (nfail > 0)
-    pkg_printf ([FAILED, "  pkg_test_suite_old in %.2f seconds.\n"], t);
+  config = pkg_config ();
+  test_dir = fullfile (config.pkg_dir, "doc", "test");
+  unwind_protect
+    old_dir = cd (test_dir);
     tic;
-    test ("pkg_test_suite_old", "verbose");
+    [~, ~, nfail] = test ("pkg_test_suite_old");
     t = toc ();
-    pkg_printf ([FAILED, "  pkg_test_suite_old in %.2f seconds.\n"], t);
-    exit (-1);
-  else
-    pkg_printf ([PASSED, "  pkg_test_suite_old in %.2f seconds.\n"], t);
-  endif
+    if (nfail > 0)
+      printf ([FAILED, "  'pkg_test_suite_old' in %.2f seconds.\n"], t);
+      tic;
+      test ("pkg_test_suite_old", "verbose");
+      t = toc ();
+      printf ([FAILED, "  'pkg_test_suite_old' in %.2f seconds.\n"], t);
+      exit (-1);
+    else
+      printf ([PASSED, "  'pkg_test_suite_old' in %.2f seconds.\n"], t);
+    endif
+  unwind_protect_cleanup
+    cd (old_dir);
+  end_unwind_protect
 
   ###########################
   ## Uninstall new pkg-tool.
