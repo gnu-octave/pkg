@@ -148,7 +148,13 @@ function varargout = pkg_list (varargin)
   installed_pkgs_lst = {local_packages{:}, global_packages{:}};
   installed_ids = cellfun (@(x) [x.name, "@", x.version], ...
                            installed_pkgs_lst, "UniformOutput", false);
-  [~, idx] = unique (installed_ids, "first");
+  ## [~, idx] = unique (installed_ids, "first");  # Since Octave 6
+  [~, idx] = unique (installed_ids);
+  idx = sort (idx);
+  ## Ensure unique (..., "first")
+  for ii = 1:length (idx)
+    idx(ii) = find (strcmp (installed_ids, installed_ids(idx(ii))), 1);
+  endfor
   installed_ids = installed_ids(idx);
   installed_pkgs_lst = installed_pkgs_lst(idx);
 
@@ -221,7 +227,7 @@ function list = list_forge_packages ()
     ## Remove version numbers and produce unique list of packages
     files = cellstr (tok);
     pkg_names = cellstr (regexp (files, '^.*?(?=-\d)', "match"));
-    [~, idx] = unique (pkg_names, "first");
+    [~, idx] = unique (pkg_names);
     files = files(idx);
 
     printf ("Octave Forge (legacy) provides these packages:\n\n");
