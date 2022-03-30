@@ -47,7 +47,7 @@ function ci_test ()
   pkg_config ("-add-startup-hook");
 
   ## Show configuration of pkg-tool.  MUST be command form for output!
-  pkg_config
+  pkg config
 
   ## Call old pkg-tool tests
   tic;
