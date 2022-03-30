@@ -28,7 +28,7 @@
 ## Update a given or all installed packages to the latest available version.
 ##
 ## With arguments given, this function is identical to @code{pkg_install}.
-## @see{pkg_install}
+## @seealso{pkg_install}
 ## @end deftypefn
 
 function pkg_update (varargin)
