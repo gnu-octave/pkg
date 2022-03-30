@@ -59,7 +59,7 @@ function ci_test ()
   unwind_protect
     old_dir = cd (test_dir);
     tic;
-    [~, ~, nfail] = test ("pkg_test_suite_old");
+    [~, ~, nfail] = test ("pkg_test_suite_old", "verbose");
     t = toc ();
     if (nfail > 0)
       printf ([FAILED, "  'pkg_test_suite_old' in %.2f seconds.\n"], t);

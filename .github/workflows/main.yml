@@ -62,24 +62,24 @@ jobs:
         run: curl ${{ env.CURL_OPTS }} ci_test.m ${{ env.CI_TEST_URL }}
 
       - name: Run pkg-tool CI tests
-        run: octave --eval "pwd; ls -al; ci_test();"
+        run: octave --eval "ci_test();"
 
 
-  # ubuntu-18_04-octave:
-  #   name: Octave 4.2.2 on Ubuntu 18.04
-  #   runs-on: ubuntu-18.04
+  ubuntu-18_04-octave:
+    name: Octave 4.2.2 on Ubuntu 18.04
+    runs-on: ubuntu-18.04
 
-  #   steps:
-  #     - name: Check out repository
-  #       uses: actions/checkout@v2
+    steps:
+      - name: Install Octave
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install octave liboctave-dev libopenblas-dev
 
-  #     - name: Install Octave
-  #       run: |
-  #         sudo apt-get -y update
-  #         sudo apt-get -y install octave liboctave-dev libopenblas-dev
+      - name: Get pkg-tool CI code
+        run: curl ${{ env.CURL_OPTS }} ci_test.m ${{ env.CI_TEST_URL }}
 
-  #     - name: Run basic pkg-tool tests
-  #       run: octave --eval "cd test; ci_test();"
+      - name: Run pkg-tool CI tests
+        run: octave --eval "ci_test();"
 
 
   # flatpak-octave:
