@@ -32,14 +32,20 @@ function ci_test ()
   FAILED = [c_red,   "FAILED", c_normal];
   pkg_dev_url = ...
     "https://github.com/gnu-octave/pkg/archive/refs/heads/main.tar.gz";
-  
+
   ## Use builtin Octave pkg-toolkit to install new pkg-toolkit
   pkg ("install", pkg_dev_url);
-  pkg load pkg
+  pkg ("load", "pkg");
+
+  #####################################
+  ## New pkg-tool takes over command.
+  #####################################
+
+  ## Check if setting startup hook works.
+  pkg_config ("-add-startup-hook");
 
   ## Show configuration of pkg-tool.  MUST be command form for output!
-  pkg config
-  cd (old_dir);
+  pkg_config
 
   ## Call old pkg-tool tests
   tic;
