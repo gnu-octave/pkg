@@ -58,11 +58,11 @@ jobs:
       #    sudo apt-get -y update
       #    sudo apt-get -y install octave liboctave-dev libopenblas-dev
 
-      - name: show environment
-        run: echo "$HOME $(pwd)"
-
       - name: Get pkg-tool CI code
         run: curl ${{ env.CURL_OPTS }} ci_test.m ${{ env.CI_TEST_URL }}
+
+      - name: show environment
+        run: pwd; ls -al; echo $HOME; ls -al $HOME
 
       - name: Run pkg-tool CI tests
         run: octave --eval "ci_test();"
