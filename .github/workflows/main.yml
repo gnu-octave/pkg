@@ -59,7 +59,7 @@ jobs:
           sudo apt-get -y install octave liboctave-dev libopenblas-dev
 
       - name: Get pkg-tool CI code
-        run: curl $(CURL_OPTS) ci_test.m $(CI_TEST_URL)
+        run: curl ${{ env.CURL_OPTS }} ci_test.m ${{ env.CI_TEST_URL }}
 
       - name: Run pkg-tool CI tests
         run: octave --eval "ci_test();"
