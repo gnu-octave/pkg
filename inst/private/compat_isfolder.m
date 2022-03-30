@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2005-2022 The Octave Project Developers
+## Copyright (C) 2018-2021 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -24,35 +24,31 @@
 ########################################################################
 
 ## -*- texinfo -*-
-## @deftypefn {} {@var{emp} =} dirempty (@var{nm}, @var{ign})
-## Check if a directory is empty.
+## @deftypefn {} {@var{tf} =} compat_isfolder (@var{f})
+## Return true if @var{f} is a directory and false otherwise.
+##
+## If @var{f} is a cell array of strings, @var{tf} is a logical array of the
+## same size.
+##
+## Added for compatibility with older versions of Octave.
+## Can be removed once Octave 5 is the minimum required version.
 ## @end deftypefn
 
-function emp = dirempty (nm, ign)
+function retval = compat_isfolder (f)
 
-  if (compat_isfolder (nm))
-    if (nargin < 2)
-      ign = {".", ".."};
-    else
-      ign = [{".", ".."}, ign];
-    endif
-    l = dir (nm);
-    for i = 1:length (l)
-      found = false;
-      for j = 1:length (ign)
-        if (strcmp (l(i).name, ign{j}))
-          found = true;
-          break;
-        endif
-      endfor
-      if (! found)
-        emp = false;
-        return;
-      endif
-    endfor
-    emp = true;
-  else
-    emp = true;
+  if (nargin != 1)
+    print_usage ();
   endif
+
+  if (! (ischar (f) || iscellstr (f)))
+    error ("isfolder: F must be a string or cell array of strings");
+  endif
+
+  f = cellstr (f);
+  retval = false (size (f));
+  for i = 1:numel (f)
+    [info, err] = stat (f{i});
+    retval(i) = (! err && S_ISDIR (info.mode));
+  endfor
 
 endfunction

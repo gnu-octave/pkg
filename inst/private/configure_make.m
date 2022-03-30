@@ -30,7 +30,7 @@
 
 function configure_make (desc, packdir, verbose)
 
-  if (isfolder (fullfile (packdir, "src")))
+  if (compat_isfolder (fullfile (packdir, "src")))
     src = fullfile (packdir, "src");
     octave_bindir = __octave_config_info__ ("bindir");
     ver = version ();

@@ -337,7 +337,7 @@ function pkg_install_internal (pkg_archive, params)
   endif
 
   ## Check that the directory in prefix exist.  If it doesn't: create it!
-  if (! isfolder (prefix))
+  if (! compat_isfolder (prefix))
     warning ("creating installation directory %s", prefix);
     [status, msg] = mkdir (prefix);
     if (status != 1)
@@ -382,11 +382,11 @@ function pkg_install_internal (pkg_archive, params)
     endif
 
     ## The filename pointed to an uncompressed package to begin with.
-    if (isfolder (pkg_archive))
+    if (compat_isfolder (pkg_archive))
       dirlist = {".", "..", pkg_archive};
     endif
 
-    if (exist (pkg_archive, "file") || isfolder (pkg_archive))
+    if (exist (pkg_archive, "file") || compat_isfolder (pkg_archive))
       ## The two first entries of dirlist are "." and "..".
       if (exist (pkg_archive, "file"))
         packdir = fullfile (tmpdir, dirlist{3});
@@ -489,7 +489,7 @@ function pkg_install_internal (pkg_archive, params)
 
   ## All is well, let's clean up.
   [status, msg] = rmdir (tmpdir, "s");
-  if ((status != 1) && isfolder (tmpdir))
+  if ((status != 1) && compat_isfolder (tmpdir))
     warning ("couldn't clean up after my self: %s\n", msg);
   endif
 
@@ -553,7 +553,7 @@ function prepare_installation (desc, packdir)
 
   ## If the directory "inst" doesn't exist, we create it.
   inst_dir = fullfile (packdir, "inst");
-  if (! isfolder (inst_dir))
+  if (! compat_isfolder (inst_dir))
     [status, msg] = mkdir (inst_dir);
     if (status != 1)
       sts = rmdir (desc.dir, "s");
@@ -568,7 +568,7 @@ endfunction
 function copy_built_files (desc, packdir, verbose)
 
   src = fullfile (packdir, "src");
-  if (! isfolder (src))
+  if (! compat_isfolder (src))
     return;
   endif
 
@@ -620,7 +620,7 @@ function copy_built_files (desc, packdir, verbose)
 
   ## Copy the files.
   if (! all (isspace ([filenames{:}])))
-      if (! isfolder (instdir))
+      if (! compat_isfolder (instdir))
         mkdir (instdir);
       endif
       if (! all (isspace ([archindependent{:}])))
@@ -641,7 +641,7 @@ function copy_built_files (desc, packdir, verbose)
           printf (" %s", archdependent{:});
           printf (" %s\n", archdir);
         endif
-        if (! isfolder (archdir))
+        if (! compat_isfolder (archdir))
           mkdir (archdir);
         endif
         [status, output] = copyfile (archdependent, archdir);
@@ -685,7 +685,7 @@ endfunction
 function copy_files (desc, packdir, global_install)
 
   ## Create the installation directory.
-  if (! isfolder (desc.dir))
+  if (! compat_isfolder (desc.dir))
     [status, output] = mkdir (desc.dir);
     if (status != 1)
       error ("couldn't create installation directory %s : %s",
@@ -704,15 +704,15 @@ function copy_files (desc, packdir, global_install)
       error ("couldn't copy files to the installation directory");
     endif
     target_dir = fullfile (desc.dir, [pkg_config()].arch);
-    if (isfolder (target_dir) && ! is_same_file (target_dir, octfiledir))
-      if (! isfolder (octfiledir))
+    if (compat_isfolder (target_dir) && ! is_same_file (target_dir, octfiledir))
+      if (! compat_isfolder (octfiledir))
         ## Can be required to create up to three levels of dirs.
         octm1 = fileparts (octfiledir);
-        if (! isfolder (octm1))
+        if (! compat_isfolder (octm1))
           octm2 = fileparts (octm1);
-          if (! isfolder (octm2))
+          if (! compat_isfolder (octm2))
             octm3 = fileparts (octm2);
-            if (! isfolder (octm3))
+            if (! compat_isfolder (octm3))
               [status, output] = mkdir (octm3);
               if (status != 1)
                 sts = rmdir (desc.dir, "s");
@@ -789,14 +789,14 @@ function copy_files (desc, packdir, global_install)
 
   ## Is there a doc/ directory that needs to be installed?
   docdir = fullfile (packdir, "doc");
-  if (isfolder (docdir) && ! dirempty (docdir))
+  if (compat_isfolder (docdir) && ! dirempty (docdir))
     [status, output] = copyfile (docdir, desc.dir);
   endif
 
   ## Is there a bin/ directory that needs to be installed?
   ## FIXME: Need to treat architecture dependent files in bin/
   bindir = fullfile (packdir, "bin");
-  if (isfolder (bindir) && ! dirempty (bindir))
+  if (compat_isfolder (bindir) && ! dirempty (bindir))
     [status, output] = copyfile (bindir, desc.dir);
   endif
 
@@ -837,7 +837,7 @@ function write_index (desc, dir, index_file, global_install)
   for k = 1:length (class_idx)
     class_name = files {class_idx(k)};
     class_dir = fullfile (dir, class_name);
-    if (isfolder (class_dir))
+    if (compat_isfolder (class_dir))
       [files2, err, msg] = readdir (class_dir);
       if (err)
         error ("couldn't read directory %s: %s", class_dir, msg);
@@ -849,7 +849,7 @@ function write_index (desc, dir, index_file, global_install)
 
   ## Check for architecture dependent files.
   tmpdir = desc.archdir;
-  if (isfolder (tmpdir))
+  if (compat_isfolder (tmpdir))
     [files2, err, msg] = readdir (tmpdir);
     if (err)
       error ("couldn't read directory %s: %s", tmpdir, msg);
@@ -901,7 +901,7 @@ function create_pkgadd_pkgdel (desc, packdir)
     ## architecture dependent directory so that the autoload/mfilename
     ## commands work as expected.  The only part that doesn't is the
     ## part in the main directory.
-    if (isfolder (desc.archdir))
+    if (compat_isfolder (desc.archdir))
       archpkg = fullfile (desc.archdir, pkg_file);
       archfid = fopen (archpkg, "at");
     else

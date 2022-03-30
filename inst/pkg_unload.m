@@ -126,7 +126,7 @@ function pkg_unload (varargin)
   archdirs = {};
   for i = 1:numel (dirs)
     archdir = fullfile (desc{i}.archprefix, [pkg_config()].arch);
-    if (isfolder (archdir))
+    if (compat_isfolder (archdir))
       archdirs{end+1} = dirs{i};
       archdirs{end+1} = archdir;
     else

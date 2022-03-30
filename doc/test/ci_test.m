@@ -36,7 +36,12 @@ function ci_test ()
   ## Use builtin Octave pkg-toolkit to install new pkg-toolkit.
   ## For customized pkg settings in `~/.octaverc` call after each step:
   ##   source ("~/.octaverc");
-  pkg ("install", pkg_dev_url);
+  if (compare_versions (OCTAVE_VERSION, "4.4.0", "<="))
+    urlwrite (pkg_dev_url, "pkg.tar.gz");
+    pkg ("install", "pkg.tar.gz");
+  else
+    pkg ("install", pkg_dev_url);
+  endif
   pkg ("load", "pkg");
 
   #####################################

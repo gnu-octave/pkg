@@ -60,7 +60,7 @@ function pkg_build (varargin)
   builddir = params.in{1};
   tarballs = params.in(2:end);
 
-  if (! isfolder (builddir))
+  if (! compat_isfolder (builddir))
     warning ("creating build directory %s", builddir);
     [status, msg] = mkdir (builddir);
     if (status != 1)

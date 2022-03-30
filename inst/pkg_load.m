@@ -100,12 +100,12 @@ function pkg_load (varargin)
     desc.archdir = fullfile (desc.archprefix, [pkg_config()].arch);
     ndir = desc.dir;
     dirs{end+1} = ndir;
-    if (isfolder (fullfile (dirs{end}, "bin")))
+    if (compat_isfolder (fullfile (dirs{end}, "bin")))
       execpath = [execpath pathsep() fullfile(dirs{end}, "bin")];
     endif
-    if (isfolder (desc.archdir))
+    if (compat_isfolder (desc.archdir))
       dirs{end + 1} = desc.archdir;
-      if (isfolder (fullfile (dirs{end}, "bin")))
+      if (compat_isfolder (fullfile (dirs{end}, "bin")))
         execpath = [execpath pathsep() fullfile(dirs{end}, "bin")];
       endif
     endif

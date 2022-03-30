@@ -147,22 +147,22 @@ function pkg_uninstall (varargin)
     ## Do the actual deletion.
     if (desc.loaded)
       rmpath (desc.dir);
-      if (isfolder (desc.archdir))
+      if (compat_isfolder (desc.archdir))
         rmpath (desc.archdir);
       endif
     endif
-    if (isfolder (desc.dir))
+    if (compat_isfolder (desc.dir))
       ## FIXME: If first call to rmdir fails, then error() will
       ##        stop further processing of desc.archdir & desc.archprefix.
       ##        If this is, in fact, correct, then calls should
       ##        just be shortened to rmdir (...) and let rmdir()
       ##        report failure and reason for failure.
       [status, msg] = rmdir (desc.dir, "s");
-      if (status != 1 && isfolder (desc.dir))
+      if (status != 1 && compat_isfolder (desc.dir))
         error ("couldn't delete directory %s: %s", desc.dir, msg);
       endif
       [status, msg] = rmdir (desc.archdir, "s");
-      if (status != 1 && isfolder (desc.archdir))
+      if (status != 1 && compat_isfolder (desc.archdir))
         error ("couldn't delete directory %s: %s", desc.archdir, msg);
       endif
       if (dirempty (desc.archprefix))
