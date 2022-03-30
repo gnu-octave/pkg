@@ -53,10 +53,13 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - name: Install Octave
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install octave liboctave-dev libopenblas-dev
+      #- name: Install Octave
+      #  run: |
+      #    sudo apt-get -y update
+      #    sudo apt-get -y install octave liboctave-dev libopenblas-dev
+
+      - name: show environment
+        run: echo "$HOME $(pwd)"
 
       - name: Get pkg-tool CI code
         run: curl ${{ env.CURL_OPTS }} ci_test.m ${{ env.CI_TEST_URL }}
