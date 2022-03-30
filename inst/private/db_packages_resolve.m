@@ -131,7 +131,7 @@ function items = db_packages_resolve (items, params)
   ###################################
 
   ## Remove duplicates
-  [~, idx] = unique ({items.id}, "stable");
+  [~, idx] = unique ({items.id});
   items = items(idx);
 
   ## Get list of packages and treat Octave as such.

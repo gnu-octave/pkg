@@ -37,6 +37,7 @@ function ci_test ()
   ## For customized pkg settings in `~/.octaverc` call after each step:
   ##   source ("~/.octaverc");
   if (compare_versions (OCTAVE_VERSION, "4.4.0", "<="))
+    more off;
     urlwrite (pkg_dev_url, "pkg.tar.gz");
     pkg ("install", "pkg.tar.gz");
   else
